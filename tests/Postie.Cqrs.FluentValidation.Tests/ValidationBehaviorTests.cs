@@ -31,6 +31,18 @@ public class ValidationBehaviorTests
         public GetUserValidator() => RuleFor(q => q.Id).GreaterThan(0);
     }
 
+    public record DeleteUser(int Id) : ICommand;
+
+    public class DeleteUserHandler : ICommandHandler<DeleteUser>
+    {
+        public ValueTask Handle(DeleteUser command, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
+    public class DeleteUserValidator : AbstractValidator<DeleteUser>
+    {
+        public DeleteUserValidator() => RuleFor(c => c.Id).GreaterThan(0);
+    }
+
     private static ICommandDispatcher CommandDispatcher()
     {
         ServiceCollection services = new();
@@ -76,6 +88,35 @@ public class ValidationBehaviorTests
         var result = await dispatcher.Dispatch(new CreateUser("Ada"), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result);
+    }
+
+    /// <summary>
+    /// Given a no-response command that fails its validator.
+    /// When it is executed.
+    /// Then a ValidationException is thrown and the handler does not run.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task InvalidVoidCommandThrowsValidationException()
+    {
+        var dispatcher = CommandDispatcher();
+
+        await Assert.ThrowsAsync<ValidationException>(
+            async () => await dispatcher.Execute(new DeleteUser(0), TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Given a no-response command that passes its validator.
+    /// When it is executed.
+    /// Then the handler runs to completion.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task ValidVoidCommandReachesHandler()
+    {
+        var dispatcher = CommandDispatcher();
+
+        await dispatcher.Execute(new DeleteUser(5), TestContext.Current.CancellationToken);
     }
 
     /// <summary>

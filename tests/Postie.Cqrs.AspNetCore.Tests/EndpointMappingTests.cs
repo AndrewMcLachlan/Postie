@@ -83,6 +83,111 @@ public class EndpointMappingTests
     }
 
     /// <summary>
+    /// Given a command mapped with MapCommand (POST returning a response).
+    /// When the POST endpoint is called with a JSON body.
+    /// Then the command handler runs and its response is returned with 200 OK.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapCommandDispatchesCommandAndReturnsOk()
+    {
+        var client = await StartAsync(app => app.MapCommand<SubmitWidget, Widget>("/widgets"));
+
+        var response = await client.PostAsJsonAsync("/widgets", new SubmitWidget("Cog"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(new Widget(99, "Cog"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Given a no-response command mapped with MapCommand (POST).
+    /// When the POST endpoint is called.
+    /// Then the command is executed and 204 No Content is returned.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapCommandVoidReturnsNoContent()
+    {
+        var client = await StartAsync(app => app.MapCommand<DeleteWidget>("/widgets/remove"));
+
+        var response = await client.PostAsJsonAsync("/widgets/remove", new DeleteWidget(5), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Given a command mapped with MapPatchCommand.
+    /// When the PATCH endpoint is called.
+    /// Then the command handler runs and its response is returned with 200 OK.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapPatchCommandDispatchesCommandAndReturnsOk()
+    {
+        var client = await StartAsync(app => app.MapPatchCommand<SubmitWidget, Widget>("/widgets"));
+
+        var response = await client.PatchAsJsonAsync("/widgets", new SubmitWidget("Patched"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(new Widget(99, "Patched"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Given a no-response command mapped with MapPutCommand.
+    /// When the PUT endpoint is called.
+    /// Then the command is executed and 204 No Content is returned.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapPutCommandVoidReturnsNoContent()
+    {
+        var client = await StartAsync(app => app.MapPutCommand<DeleteWidget>("/widgets/deactivate"));
+
+        var response = await client.PutAsJsonAsync("/widgets/deactivate", new DeleteWidget(5), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Given a create command mapped with MapPutCreate.
+    /// When the PUT endpoint is called.
+    /// Then the command handler runs and 201 Created with a Location header is returned.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapPutCreateDispatchesCommandAndReturnsCreated()
+    {
+        var client = await StartAsync(app =>
+        {
+            app.MapQuery<GetGreeting, string>("/widgets/{name}").WithName("GetPutWidget");
+            app.MapPutCreate<SubmitWidget, Widget>("/widgets", "GetPutWidget", w => new { name = w.Name });
+        });
+
+        var response = await client.PutAsJsonAsync("/widgets", new SubmitWidget("Made"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+        Assert.Equal(new Widget(99, "Made"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Given a command mapped with MapDeleteCommand returning a response.
+    /// When the DELETE endpoint is called.
+    /// Then the command handler runs and its response is returned with 200 OK.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapDeleteCommandWithResponseReturnsOk()
+    {
+        var client = await StartAsync(app => app.MapDeleteCommand<PurgeWidget, Widget>("/widgets/{id}"));
+
+        var response = await client.DeleteAsync("/widgets/8", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(new Widget(8, "purged"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
     /// Given a streaming query mapped with MapStreamQuery.
     /// When the GET endpoint is called.
     /// Then the handler's items are streamed back as a JSON array.

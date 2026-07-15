@@ -240,8 +240,13 @@ public static class PostieCqrsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(behaviorType);
 
         // Multiple behaviors are expected, so register with Add rather than TryAdd; the dispatcher runs
-        // every registered behavior in order.
-        services.AddTransient(typeof(IQueryPipelineBehavior<,>), behaviorType);
+        // every registered behavior in order. An open generic registers against the open interface (so it
+        // applies to every query); a closed behavior registers against the closed interface it implements.
+        var serviceType = behaviorType.IsGenericTypeDefinition
+            ? typeof(IQueryPipelineBehavior<,>)
+            : ClosedBehaviorInterface(behaviorType, typeof(IQueryPipelineBehavior<,>));
+
+        services.AddTransient(serviceType, behaviorType);
 
         return services;
     }
@@ -260,7 +265,11 @@ public static class PostieCqrsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(behaviorType);
 
-        services.AddTransient(typeof(IStreamQueryPipelineBehavior<,>), behaviorType);
+        var serviceType = behaviorType.IsGenericTypeDefinition
+            ? typeof(IStreamQueryPipelineBehavior<,>)
+            : ClosedBehaviorInterface(behaviorType, typeof(IStreamQueryPipelineBehavior<,>));
+
+        services.AddTransient(serviceType, behaviorType);
 
         return services;
     }
@@ -281,31 +290,39 @@ public static class PostieCqrsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(behaviorType);
 
-        var arity = behaviorType.IsGenericTypeDefinition
-            ? behaviorType.GetGenericArguments().Length
-            : InferClosedCommandBehaviorArity(behaviorType);
+        // An open generic registers against the matching open interface (arity picks response vs void); a
+        // closed behavior registers against the closed interface it implements.
+        Type serviceType;
+        if (behaviorType.IsGenericTypeDefinition)
+        {
+            serviceType = behaviorType.GetGenericArguments().Length == 1
+                ? typeof(ICommandPipelineBehavior<>)
+                : typeof(ICommandPipelineBehavior<,>);
+        }
+        else
+        {
+            serviceType = ClosedBehaviorInterface(behaviorType, typeof(ICommandPipelineBehavior<,>), typeof(ICommandPipelineBehavior<>));
+        }
 
-        var behaviorInterface = arity == 1
-            ? typeof(ICommandPipelineBehavior<>)
-            : typeof(ICommandPipelineBehavior<,>);
-
-        services.AddTransient(behaviorInterface, behaviorType);
+        services.AddTransient(serviceType, behaviorType);
 
         return services;
     }
 
-    private static int InferClosedCommandBehaviorArity(Type behaviorType)
+    // Finds the closed pipeline-behavior interface a (non-generic-definition) behavior implements, so a
+    // closed behavior is registered against that closed service type rather than the open definition.
+    private static Type ClosedBehaviorInterface(Type behaviorType, params Type[] openDefinitions)
     {
         foreach (var i in behaviorType.GetInterfaces())
         {
-            if (!i.IsGenericType) continue;
-            var definition = i.GetGenericTypeDefinition();
-            if (definition == typeof(ICommandPipelineBehavior<,>)) return 2;
-            if (definition == typeof(ICommandPipelineBehavior<>)) return 1;
+            if (i.IsGenericType && Array.IndexOf(openDefinitions, i.GetGenericTypeDefinition()) >= 0)
+            {
+                return i;
+            }
         }
 
         throw new ArgumentException(
-            $"Type '{behaviorType}' does not implement ICommandPipelineBehavior<TCommand, TResponse> or ICommandPipelineBehavior<TCommand>.",
+            $"Type '{behaviorType}' does not implement a matching pipeline behavior interface.",
             nameof(behaviorType));
     }
     #endregion

@@ -47,6 +47,29 @@ public class PipelineBehaviorTests
         }
     }
 
+    private sealed class RecordingCommandBehavior<TCommand, TResponse>(Recorder recorder) : ICommandPipelineBehavior<TCommand, TResponse> where TCommand : ICommand<TResponse>
+    {
+        public async ValueTask<TResponse> Handle(TCommand command, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        {
+            recorder.Entries.Add("command:before");
+            var response = await next();
+            recorder.Entries.Add("command:after");
+            return response;
+        }
+    }
+
+    // A closed behavior (not an open generic) targeting one specific command.
+    private sealed class ClosedTestCommandBehavior(Recorder recorder) : ICommandPipelineBehavior<TestCommand, bool>
+    {
+        public async ValueTask<bool> Handle(TestCommand command, RequestHandlerDelegate<bool> next, CancellationToken cancellationToken)
+        {
+            recorder.Entries.Add("closed:before");
+            var response = await next();
+            recorder.Entries.Add("closed:after");
+            return response;
+        }
+    }
+
     /// <summary>
     /// Given two query behaviors registered in order.
     /// When a query is dispatched.
@@ -89,6 +112,50 @@ public class PipelineBehaviorTests
         await dispatcher.Execute(new NoOpCommand(), TestContext.Current.CancellationToken);
 
         Assert.Equal(["audit:before", "audit:after"], recorder.Entries);
+    }
+
+    /// <summary>
+    /// Given an open-generic behavior on a command that returns a response.
+    /// When the command is dispatched.
+    /// Then the behavior surrounds the handler and the response flows back.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task CommandResponseBehaviorSurroundsHandler()
+    {
+        var recorder = new Recorder();
+        ServiceCollection services = new();
+        services.AddSingleton(recorder);
+        services.AddCommandHandlers(typeof(TestCommand).Assembly);
+        services.AddCommandPipelineBehavior(typeof(RecordingCommandBehavior<,>));
+        var dispatcher = services.BuildServiceProvider().GetRequiredService<ICommandDispatcher>();
+
+        var result = await dispatcher.Dispatch(new TestCommand { Input = "ABC" }, TestContext.Current.CancellationToken);
+
+        Assert.True(result);
+        Assert.Equal(["command:before", "command:after"], recorder.Entries);
+    }
+
+    /// <summary>
+    /// Given a closed (non-generic) command behavior registered for one command type.
+    /// When that command is dispatched.
+    /// Then the closed behavior runs around the handler.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task ClosedCommandBehaviorIsResolvedAndRun()
+    {
+        var recorder = new Recorder();
+        ServiceCollection services = new();
+        services.AddSingleton(recorder);
+        services.AddCommandHandlers(typeof(TestCommand).Assembly);
+        services.AddCommandPipelineBehavior(typeof(ClosedTestCommandBehavior));
+        var dispatcher = services.BuildServiceProvider().GetRequiredService<ICommandDispatcher>();
+
+        var result = await dispatcher.Dispatch(new TestCommand { Input = "ABC" }, TestContext.Current.CancellationToken);
+
+        Assert.True(result);
+        Assert.Equal(["closed:before", "closed:after"], recorder.Entries);
     }
 
     /// <summary>

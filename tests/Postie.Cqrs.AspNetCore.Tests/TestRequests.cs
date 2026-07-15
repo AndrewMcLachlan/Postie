@@ -44,6 +44,24 @@ public class DeleteWidgetHandler : ICommandHandler<DeleteWidget>
     public ValueTask Handle(DeleteWidget command, CancellationToken cancellationToken) => ValueTask.CompletedTask;
 }
 
+// A command that returns a response, bound from the body (for POST/PATCH/PUT-create mappings).
+public record SubmitWidget(string Name) : ICommand<Widget>;
+
+public class SubmitWidgetHandler : ICommandHandler<SubmitWidget, Widget>
+{
+    public ValueTask<Widget> Handle(SubmitWidget command, CancellationToken cancellationToken) =>
+        new(new Widget(99, command.Name));
+}
+
+// A command that returns a response, bound from the route (for the DELETE-with-response mapping).
+public record PurgeWidget(int Id) : ICommand<Widget>;
+
+public class PurgeWidgetHandler : ICommandHandler<PurgeWidget, Widget>
+{
+    public ValueTask<Widget> Handle(PurgeWidget command, CancellationToken cancellationToken) =>
+        new(new Widget(command.Id, "purged"));
+}
+
 // A streaming query.
 public record StreamWidgets(int Count) : IStreamQuery<Widget>;
 

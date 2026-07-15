@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Postie.Cqrs.Commands;
 using Postie.Cqrs.Queries;
+using Postie.Cqrs.Tests.Commands;
+using Postie.Cqrs.Tests.Queries;
 
 namespace Postie.Cqrs.Tests;
 
@@ -56,5 +58,41 @@ public class RegistrationTests
 
         Assert.NotNull(provider.GetRequiredService<ICommandDispatcher>());
         Assert.NotNull(provider.GetRequiredService<IQueryDispatcher>());
+    }
+
+    /// <summary>
+    /// Given handlers registered individually via the explicit generic overloads.
+    /// When the matching requests are dispatched.
+    /// Then each handler runs and returns its response.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task ExplicitHandlerRegistrationsDispatch()
+    {
+        ServiceCollection services = new();
+        services.AddCommandHandler<TestCommandHandler, TestCommand, bool>();
+        services.AddCommandHandler<NoOpCommandHandler, NoOpCommand>();
+        services.AddQueryHandler<TestQueryHandler, TestQuery, string>();
+        services.AddStreamQueryHandler<StreamQueryTests.CountdownHandler, StreamQueryTests.Countdown, int>();
+        var provider = services.BuildServiceProvider();
+
+        var commandResult = await provider.GetRequiredService<ICommandDispatcher>()
+            .Dispatch(new TestCommand { Input = "ABC" }, TestContext.Current.CancellationToken);
+        var queryResult = await provider.GetRequiredService<IQueryDispatcher>()
+            .Dispatch(new TestQuery { Input = "abc" }, TestContext.Current.CancellationToken);
+
+        var streamed = new List<int>();
+        await foreach (var item in provider.GetRequiredService<IStreamQueryDispatcher>()
+            .Dispatch(new StreamQueryTests.Countdown(2), TestContext.Current.CancellationToken))
+        {
+            streamed.Add(item);
+        }
+
+        await provider.GetRequiredService<ICommandDispatcher>()
+            .Execute(new NoOpCommand(), TestContext.Current.CancellationToken);
+
+        Assert.True(commandResult);
+        Assert.Equal("ABC", queryResult);
+        Assert.Equal([2, 1], streamed);
     }
 }

@@ -50,9 +50,10 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         var handler = serviceProvider.GetRequiredService(handlerType);
         var typedInvoker = (Func<object, object, CancellationToken, ValueTask<TResponse>>)invoker;
 
+        ValueTask<TResponse> Run() => Pipeline(query, queryType, QueryBehaviorGenericType, () => typedInvoker(handler, query, cancellationToken), cancellationToken);
+
         var activity = StartActivity("query", queryType);
-        var pending = Pipeline(query, queryType, QueryBehaviorGenericType, () => typedInvoker(handler, query, cancellationToken), cancellationToken);
-        return activity is null ? pending : Awaited(activity, pending);
+        return activity is null ? Run() : Awaited(activity, Run);
     }
 
     public ValueTask<TResponse> Dispatch<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken = default)
@@ -72,9 +73,10 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         var handler = serviceProvider.GetRequiredService(handlerType);
         var typedInvoker = (Func<object, object, CancellationToken, ValueTask<TResponse>>)invoker;
 
+        ValueTask<TResponse> Run() => Pipeline(command, commandType, CommandBehaviorGenericType, () => typedInvoker(handler, command, cancellationToken), cancellationToken);
+
         var activity = StartActivity("command", commandType);
-        var pending = Pipeline(command, commandType, CommandBehaviorGenericType, () => typedInvoker(handler, command, cancellationToken), cancellationToken);
-        return activity is null ? pending : Awaited(activity, pending);
+        return activity is null ? Run() : Awaited(activity, Run);
     }
 
     public ValueTask Execute(ICommand command, CancellationToken cancellationToken = default)
@@ -104,9 +106,10 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         var handler = serviceProvider.GetRequiredService(handlerType);
         var typedInvoker = (Func<object, object, CancellationToken, ValueTask>)invoker;
 
+        ValueTask Run() => VoidPipeline(command, commandType, () => typedInvoker(handler, command, cancellationToken), cancellationToken);
+
         var activity = StartActivity("command", commandType);
-        var pending = VoidPipeline(command, commandType, () => typedInvoker(handler, command, cancellationToken), cancellationToken);
-        return activity is null ? pending : Awaited(activity, pending);
+        return activity is null ? Run() : Awaited(activity, Run);
     }
 
     public IAsyncEnumerable<TResponse> Dispatch<TResponse>(IStreamQuery<TResponse> query, CancellationToken cancellationToken = default)
@@ -224,13 +227,15 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         return activity;
     }
 
-    private static async ValueTask<TResponse> Awaited<TResponse>(Activity activity, ValueTask<TResponse> pending)
+    // The pipeline runs inside the try so a synchronous throw from the handler is recorded on the
+    // activity (and the activity disposed) rather than escaping before it is stopped.
+    private static async ValueTask<TResponse> Awaited<TResponse>(Activity activity, RequestHandlerDelegate<TResponse> pipeline)
     {
         using (activity)
         {
             try
             {
-                return await pending;
+                return await pipeline();
             }
             catch (Exception ex)
             {
@@ -240,13 +245,13 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         }
     }
 
-    private static async ValueTask Awaited(Activity activity, ValueTask pending)
+    private static async ValueTask Awaited(Activity activity, RequestHandlerDelegate pipeline)
     {
         using (activity)
         {
             try
             {
-                await pending;
+                await pipeline();
             }
             catch (Exception ex)
             {
