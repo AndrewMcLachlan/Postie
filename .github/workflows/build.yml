@@ -22,11 +22,11 @@ jobs:
       # First-class output from get-dotnet-version: true when a VersionSuffix is set.
       is-prerelease: ${{ steps.set-version-number.outputs.is-prerelease }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: |
           8.x
@@ -52,7 +52,7 @@ jobs:
       run: dotnet pack Postie.slnx --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.set-version-number.outputs.version }}
 
     - name: Upload packages
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: packages
         path: ${{ github.workspace }}/publish/**/*.nupkg
@@ -70,7 +70,7 @@ jobs:
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || needs.build.outputs.is-prerelease == 'true')
     steps:
     - name: Download packages
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: packages
         path: ./packages
