@@ -24,10 +24,12 @@
     <Project Path="src/Postie.Cqrs/Postie.Cqrs.csproj" />
     <Project Path="src/Postie.AspNetCore/Postie.AspNetCore.csproj" />
     <Project Path="src/Postie.Cqrs.AspNetCore/Postie.Cqrs.AspNetCore.csproj" />
+    <Project Path="src/Postie.AspNetCore.MediatR/Postie.AspNetCore.MediatR.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />
     <Project Path="tests/Postie.Cqrs.Tests/Postie.Cqrs.Tests.csproj" />
     <Project Path="tests/Postie.Cqrs.AspNetCore.Tests/Postie.Cqrs.AspNetCore.Tests.csproj" />
+    <Project Path="tests/Postie.AspNetCore.MediatR.Tests/Postie.AspNetCore.MediatR.Tests.csproj" />
   </Folder>
 </Solution>

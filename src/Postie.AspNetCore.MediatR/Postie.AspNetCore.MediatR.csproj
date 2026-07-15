@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>MediatR adapter for Postie.AspNetCore — dispatch minimal API endpoints through MediatR, keeping your existing IRequest types.</Description>
+    <PackageTags>cqrs;minimal-api;aspnetcore;endpoints;mediatr;mediator</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\Postie.AspNetCore\Postie.AspNetCore.csproj" />
+    <PackageReference Include="MediatR" />
+  </ItemGroup>
+
+</Project>
