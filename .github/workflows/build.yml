@@ -70,7 +70,7 @@ jobs:
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || needs.build.outputs.is-prerelease == 'true')
     steps:
     - name: Download packages
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v8
       with:
         name: packages
         path: ./packages
