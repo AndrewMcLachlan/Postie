@@ -10,12 +10,12 @@
   <PropertyGroup>
     <Authors>Andrew McLachlan</Authors>
     <Copyright>© $([System.DateTime]::Now.Year) Andrew McLachlan</Copyright>
-    <!-- The current Major.Minor of the line this branch publishes. Edit this to bump (a deliberate,
-         reviewable version change); the patch is the number of commits since this line last changed,
-         and AssemblyVersion/FileVersion are assembled by CI (get-dotnet-version action).
-         Set VersionSuffix (e.g. beta) for a prerelease line. -->
-    <VersionPrefix>1.0</VersionPrefix>
-    <VersionSuffix>beta</VersionSuffix>
+    <!-- The version this repo publishes. Edit Version to bump Major.Minor.Patch (a deliberate,
+         reviewable change); CI reads it via the get-version-number-from-project action and appends a
+         prerelease suffix (-ci.N for GitHub Packages, -beta.N for a nuget.org prerelease). Keep
+         AssemblyVersion in step with the Major.Minor.Patch. -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
 </Project>

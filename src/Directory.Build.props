@@ -10,7 +10,7 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/AndrewMcLachlan/Postie</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <Content Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
+    <Content Include="..\..\LICENSE" Link="LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>

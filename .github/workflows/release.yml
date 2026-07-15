@@ -1,10 +1,14 @@
 name: Release
 
-# Publishes the current version (as declared in Directory.Build.props) to nuget.org.
-# During the beta phase this pushes the prerelease package; once VersionSuffix is removed it pushes
-# the stable release. Triggered manually so releases to the public feed are always deliberate.
+# Publishes to nuget.org. Triggered manually so releases to the public feed are always deliberate.
+# The version comes from Directory.Build.props; a prerelease run appends -beta.<run_number>.
 on:
   workflow_dispatch:
+    inputs:
+      isprerelease:
+        description: "Pre-release"
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -15,36 +19,43 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' }}
     steps:
     - uses: actions/checkout@v5
-      with:
-        fetch-depth: 0
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
+      env:
+        NUGET_AUTH_TOKEN: ${{ secrets.NUGET_API_KEY }}
       with:
         dotnet-version: |
           8.x
           9.x
           10.x
         source-url: https://api.nuget.org/v3/index.json
-      env:
-        NUGET_AUTH_TOKEN: ${{ secrets.NUGET_API_KEY }}
 
-    - name: Get version
-      id: set-version-number
-      uses: AndrewMcLachlan/Actions/get-dotnet-version@v4
+    - name: Get version info
+      id: get-version-number
+      uses: AndrewMcLachlan/Actions/get-version-number-from-project@v4
       with:
         project: Directory.Build.props
+
+    - name: Set package version
+      id: set-version
+      run: |
+        if [ "${{ inputs.isprerelease }}" = "true" ]; then
+          echo "package-version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}-beta.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        else
+          echo "package-version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}" >> $GITHUB_OUTPUT
+        fi
 
     - name: Restore
       run: dotnet restore Postie.slnx
 
     - name: Build
-      run: dotnet build Postie.slnx --no-restore --configuration Release --p:Version=${{ steps.set-version-number.outputs.version }} --p:AssemblyVersion=${{ steps.set-version-number.outputs.assembly-version }} --p:FileVersion=${{ steps.set-version-number.outputs.file-version }} --p:InformationalVersion=${{ steps.set-version-number.outputs.version }}
+      run: dotnet build Postie.slnx --no-restore --configuration Release --p:Version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}.0 --p:FileVersion=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}.${{ github.run_number }} --p:InformationalVersion=${{ steps.set-version.outputs.package-version }}
 
     - name: Test
       run: dotnet test Postie.slnx --no-build --configuration Release
 
     - name: Package
-      run: dotnet pack Postie.slnx --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.set-version-number.outputs.version }}
+      run: dotnet pack Postie.slnx --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}.0 --p:PackageVersion=${{ steps.set-version.outputs.package-version }}
 
     - name: Publish to NuGet.org
       run: dotnet nuget push ${{ github.workspace }}/publish/**/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
