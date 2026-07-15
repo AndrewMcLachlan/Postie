@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>FluentValidation pipeline behaviors for Postie.Cqrs — validate commands and queries before they reach the handler.</Description>
+    <PackageTags>cqrs;mediator;validation;fluentvalidation;pipeline</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Postie.Cqrs\Postie.Cqrs.csproj" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+
+</Project>
