@@ -4,50 +4,138 @@
 
 Postie maps CQRS requests to REST endpoints — `MapQuery`, `MapCommand`, `MapPostCreate` and friends —
 with the right status codes, `Location` headers, OpenAPI metadata and full control over request binding.
-Bring your own mediator: use the lightweight Postie dispatcher, plug in MediatR, or roll your own by
+Bring your own mediator: use the lightweight Postie mediator, plug in MediatR, or roll your own by
 implementing a single interface.
 
 **Free forever.** MIT licensed. No commercial edition, no license keys, no revenue thresholds.
 
-> 🚧 Postie is under construction ahead of its first beta release. The API may change without notice
-> until 1.0.
+[![Build and Publish](https://github.com/AndrewMcLachlan/Postie/actions/workflows/build.yml/badge.svg)](https://github.com/AndrewMcLachlan/Postie/actions/workflows/build.yml)
 
-## A taste
+## Quickstart
 
-```csharp
-var orders = app.MapGroup("/orders");
-
-orders.MapQuery<GetOrders, IEnumerable<Order>>("/");
-orders.MapQuery<GetOrder, Order>("/{id}").WithName("GetOrder");
-orders.MapPostCreate<CreateOrder, Order>("/", routeName: "GetOrder", o => new { id = o.Id });
-orders.MapPutCommand<UpdateOrder, Order>("/{id}");
-orders.MapDeleteCommand<DeleteOrder>("/{id}");
+```
+dotnet add package Postie.Cqrs.AspNetCore
 ```
 
-No handler lambdas, no boilerplate between the route and your handler — and hybrid binding
-(`[FromRoute] int Id` alongside a `[FromBody]` payload) that answers the first question everyone
-asks with this pattern.
+```csharp
+using Postie.AspNetCore;
+using Postie.Cqrs.Queries;
+using Postie.Cqrs.Commands;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddPostie(typeof(GetOrder).Assembly);   // handlers + endpoint dispatcher
+
+var app = builder.Build();
+
+var orders = app.MapGroup("/orders");
+orders.MapQuery<GetOrder, Order>("/{id}").WithName("GetOrder");
+orders.MapPostCreate<CreateOrder, Order>("/", "GetOrder", o => new { id = o.Id });
+orders.MapPutCommand<UpdateOrder, Order>("/{id}");
+orders.MapDeleteCommand<DeleteOrder>("/{id}");
+
+app.Run();
+
+// Requests and handlers
+public record GetOrder(int Id) : IQuery<Order>;
+public class GetOrderHandler : IQueryHandler<GetOrder, Order>
+{
+    public ValueTask<Order> Handle(GetOrder query, CancellationToken ct) => ValueTask.FromResult(new Order(query.Id));
+}
+
+public record CreateOrder(string Customer) : ICommand<Order>;
+public record UpdateOrder([FromRoute] int Id, [FromBody] OrderDetails Details) : ICommand<Order>;
+public record DeleteOrder(int Id) : ICommand;
+```
+
+No handler lambdas, no boilerplate between the route and your handler.
 
 ## Packages
 
 | Package | Description |
 |---------|-------------|
-| `Postie.Cqrs` | A lightweight CQRS mediator: separate command and query dispatchers, pipeline behaviors, streaming, OpenTelemetry |
-| `Postie.AspNetCore` | The endpoint mapping engine — mediator-agnostic |
-| `Postie.Cqrs.AspNetCore` | Postie.Cqrs adapter with strongly typed mapping methods |
-| `Postie.AspNetCore.MediatR` | MediatR adapter — keep your existing `IRequest` types |
-| `Postie.Cqrs.FluentValidation` | FluentValidation pipeline behavior |
+| [`Postie.Cqrs`](src/Postie.Cqrs) | The lightweight CQRS mediator: separate command and query dispatchers, pipeline behaviors |
+| [`Postie.AspNetCore`](src/Postie.AspNetCore) | The endpoint mapping engine — mediator-agnostic |
+| [`Postie.Cqrs.AspNetCore`](src/Postie.Cqrs.AspNetCore) | Adapter wiring the engine to Postie's own mediator |
+| [`Postie.AspNetCore.MediatR`](src/Postie.AspNetCore.MediatR) | Adapter for MediatR — keep your existing `IRequest` types |
+| [`Postie.Cqrs.FluentValidation`](src/Postie.Cqrs.FluentValidation) | FluentValidation pipeline behaviors |
 
-## Why Postie?
+## Bring your own mediator
 
-- **The endpoint layer is the point.** Most mediator libraries stop at dispatch; Postie's focus is the
-  last mile between HTTP and your handlers, done REST-properly (201 + `Location` via named routes,
-  204 for no-content commands, verb-appropriate binding defaults).
-- **Mediator-agnostic by design.** The mapping engine dispatches through one small abstraction.
-  Postie's own mediator is in the box, MediatR is an adapter package away, and roll-your-own is one
-  interface.
-- **CQS-split, not one `IRequest`.** Commands and queries are different things with different
-  dispatchers and different pipelines.
+The endpoint engine dispatches through one small abstraction, `IEndpointDispatcher`, so the same `Map*`
+methods work with any mediator:
+
+**Postie's mediator** (`Postie.Cqrs.AspNetCore`):
+```csharp
+builder.Services.AddPostie(typeof(GetOrder).Assembly);
+```
+
+**MediatR** (`Postie.AspNetCore.MediatR`) — keep your `IRequest` types:
+```csharp
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(GetOrder).Assembly));
+builder.Services.AddPostieMediatR();
+```
+
+**Roll your own** — implement two methods:
+```csharp
+public class MyEndpointDispatcher(IMyMediator mediator) : IEndpointDispatcher
+{
+    public ValueTask<TResponse> DispatchAsync<TResponse>(object request, CancellationToken ct) => /* ... */;
+    public ValueTask DispatchAsync(object request, CancellationToken ct) => /* ... */;
+}
+builder.Services.AddTransient<IEndpointDispatcher, MyEndpointDispatcher>();
+```
+
+## Endpoint conventions
+
+| Method | Verb | Success | Default binding |
+|--------|------|---------|-----------------|
+| `MapQuery<TQuery, TResponse>` | GET | 200 | route/query |
+| `MapCommand<TCommand, TResponse>` / `MapCommand<TCommand>` | POST | 200 / 204 | body |
+| `MapPutCommand<TCommand, TResponse>` / `MapPutCommand<TCommand>` | PUT | 200 / 204 | body |
+| `MapPatchCommand<TCommand, TResponse>` | PATCH | 200 | body |
+| `MapPostCreate<TCommand, TResponse>` / `MapPutCreate<...>` | POST / PUT | 201 + `Location` | body |
+| `MapDeleteCommand<TCommand>` / `MapDeleteCommand<TCommand, TResponse>` | DELETE | 204 / 200 | route/query |
+
+Command methods take a `RequestBinding` (`Body`, `Parameters`, or `Default`) to override the default —
+use `Parameters` for hybrid endpoints that bind an id from the route and a payload from the body.
+
+## Pipeline behaviors and validation
+
+Cross-cutting concerns wrap handling through CQS-split behaviors (`IQueryPipelineBehavior<,>`,
+`ICommandPipelineBehavior<,>`, `ICommandPipelineBehavior<>`):
+
+```csharp
+builder.Services.AddQueryPipelineBehavior(typeof(TimingBehavior<,>));
+```
+
+For FluentValidation, [`Postie.Cqrs.FluentValidation`](src/Postie.Cqrs.FluentValidation) ships ready-made
+behaviors:
+
+```csharp
+builder.Services.AddPostieValidation(typeof(CreateOrder).Assembly);
+```
+
+## Error handling
+
+Postie's endpoint layer doesn't translate exceptions — handlers throw, and your exception handling maps
+them to responses. Pair with [Asm.AspNetCore](https://www.nuget.org/packages/Asm.AspNetCore), which maps
+common exception types (including FluentValidation's `ValidationException`) to RFC 9457 problem details, or
+register your own `IExceptionHandler`.
+
+## Why another one?
+
+The endpoint layer is the point. Most mediator libraries stop at dispatch; Postie's focus is the last mile
+between HTTP and your handlers, done REST-properly (201 + `Location` via named routes, 204 for no-content
+commands, verb-appropriate binding defaults) — and it works with whatever mediator you already use.
+
+## Building
+
+```
+dotnet build Postie.slnx
+dotnet test Postie.slnx
+```
+
+Targets `net8.0`, `net9.0` and `net10.0`.
 
 ## License
 
