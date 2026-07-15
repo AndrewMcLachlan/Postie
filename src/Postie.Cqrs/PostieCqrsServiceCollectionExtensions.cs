@@ -169,6 +169,73 @@ public static class PostieCqrsServiceCollectionExtensions
     }
     #endregion
 
+    #region Pipeline behaviors
+    /// <summary>
+    /// Registers a query pipeline behavior. Behaviors run in registration order, each surrounding the next.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
+    /// <param name="behaviorType">
+    /// The behavior implementation. Usually an open generic (e.g. <c>typeof(LoggingBehavior&lt;,&gt;)</c>)
+    /// that applies to every query, or a closed <see cref="IQueryPipelineBehavior{TQuery, TResponse}"/>.
+    /// </param>
+    /// <returns>The same service collection so that multiple calls can be chained.</returns>
+    public static IServiceCollection AddQueryPipelineBehavior(this IServiceCollection services, Type behaviorType)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(behaviorType);
+
+        // Multiple behaviors are expected, so register with Add rather than TryAdd; the dispatcher runs
+        // every registered behavior in order.
+        services.AddTransient(typeof(IQueryPipelineBehavior<,>), behaviorType);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a command pipeline behavior. The command's response arity is inferred from the behavior
+    /// type: a two-parameter behavior targets commands that return a response, a one-parameter behavior
+    /// targets commands that do not. Behaviors run in registration order, each surrounding the next.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
+    /// <param name="behaviorType">
+    /// The behavior implementation. Usually an open generic (e.g. <c>typeof(LoggingBehavior&lt;,&gt;)</c>
+    /// or <c>typeof(AuditBehavior&lt;&gt;)</c>) that applies to every command.
+    /// </param>
+    /// <returns>The same service collection so that multiple calls can be chained.</returns>
+    public static IServiceCollection AddCommandPipelineBehavior(this IServiceCollection services, Type behaviorType)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(behaviorType);
+
+        var arity = behaviorType.IsGenericTypeDefinition
+            ? behaviorType.GetGenericArguments().Length
+            : InferClosedCommandBehaviorArity(behaviorType);
+
+        var behaviorInterface = arity == 1
+            ? typeof(ICommandPipelineBehavior<>)
+            : typeof(ICommandPipelineBehavior<,>);
+
+        services.AddTransient(behaviorInterface, behaviorType);
+
+        return services;
+    }
+
+    private static int InferClosedCommandBehaviorArity(Type behaviorType)
+    {
+        foreach (var i in behaviorType.GetInterfaces())
+        {
+            if (!i.IsGenericType) continue;
+            var definition = i.GetGenericTypeDefinition();
+            if (definition == typeof(ICommandPipelineBehavior<,>)) return 2;
+            if (definition == typeof(ICommandPipelineBehavior<>)) return 1;
+        }
+
+        throw new ArgumentException(
+            $"Type '{behaviorType}' does not implement ICommandPipelineBehavior<TCommand, TResponse> or ICommandPipelineBehavior<TCommand>.",
+            nameof(behaviorType));
+    }
+    #endregion
+
     // A request may have only one handler: the dispatcher resolves a single handler per request type,
     // so a second registration for the same handler interface is a configuration mistake that would
     // otherwise surface as an opaque "multiple services registered" error at dispatch time.
