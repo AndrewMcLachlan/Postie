@@ -1,0 +1,50 @@
+name: Release
+
+# Publishes the current version (as declared in Directory.Build.props) to nuget.org.
+# During the beta phase this pushes the prerelease package; once VersionSuffix is removed it pushes
+# the stable release. Triggered manually so releases to the public feed are always deliberate.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.x
+          9.x
+          10.x
+        source-url: https://api.nuget.org/v3/index.json
+      env:
+        NUGET_AUTH_TOKEN: ${{ secrets.NUGET_API_KEY }}
+
+    - name: Get version
+      id: set-version-number
+      uses: AndrewMcLachlan/Actions/get-dotnet-version@v4
+      with:
+        project: Directory.Build.props
+
+    - name: Restore
+      run: dotnet restore Postie.slnx
+
+    - name: Build
+      run: dotnet build Postie.slnx --no-restore --configuration Release --p:Version=${{ steps.set-version-number.outputs.version }} --p:AssemblyVersion=${{ steps.set-version-number.outputs.assembly-version }} --p:FileVersion=${{ steps.set-version-number.outputs.file-version }} --p:InformationalVersion=${{ steps.set-version-number.outputs.version }}
+
+    - name: Test
+      run: dotnet test Postie.slnx --no-build --configuration Release
+
+    - name: Package
+      run: dotnet pack Postie.slnx --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.set-version-number.outputs.version }}
+
+    - name: Publish to NuGet.org
+      run: dotnet nuget push ${{ github.workspace }}/publish/**/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

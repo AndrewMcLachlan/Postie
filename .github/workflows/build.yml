@@ -1,0 +1,79 @@
+name: Build and Publish
+
+on:
+  push:
+    branches:
+      - "main"
+      - "release/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NUGET_SOURCE: https://nuget.pkg.github.com/AndrewMcLachlan/index.json
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set-version-number.outputs.version }}
+      # First-class output from get-dotnet-version: true when a VersionSuffix is set.
+      is-prerelease: ${{ steps.set-version-number.outputs.is-prerelease }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.x
+          9.x
+          10.x
+
+    - name: Get version
+      id: set-version-number
+      uses: AndrewMcLachlan/Actions/get-dotnet-version@v4
+      with:
+        project: Directory.Build.props
+
+    - name: Restore
+      run: dotnet restore Postie.slnx
+
+    - name: Build
+      run: dotnet build Postie.slnx --no-restore --configuration Release --p:Version=${{ steps.set-version-number.outputs.version }} --p:AssemblyVersion=${{ steps.set-version-number.outputs.assembly-version }} --p:FileVersion=${{ steps.set-version-number.outputs.file-version }} --p:InformationalVersion=${{ steps.set-version-number.outputs.version }}
+
+    - name: Test
+      run: dotnet test Postie.slnx --no-build --configuration Release --verbosity normal
+
+    - name: Package
+      run: dotnet pack Postie.slnx --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.set-version-number.outputs.version }}
+
+    - name: Upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: packages
+        path: ${{ github.workspace }}/publish/**/*.nupkg
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      packages: write
+      contents: read
+    # Publish prerelease/CI packages to GitHub Packages from main (the trunk) or any prerelease build
+    # (a branch with a VersionSuffix, e.g. release/1.1-beta). A release/** branch with the suffix
+    # removed publishes nothing, so a beta can be graduated in place before merging — no accidental deploy.
+    # Stable releases to nuget.org go through the separate Release workflow.
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || needs.build.outputs.is-prerelease == 'true')
+    steps:
+    - name: Download packages
+      uses: actions/download-artifact@v4
+      with:
+        name: packages
+        path: ./packages
+
+    - name: Publish Packages
+      run: dotnet nuget push ./packages/**/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source ${{ env.NUGET_SOURCE }} --skip-duplicate

@@ -1,0 +1,21 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Andrew McLachlan</Authors>
+    <Copyright>© $([System.DateTime]::Now.Year) Andrew McLachlan</Copyright>
+    <!-- The current Major.Minor of the line this branch publishes. Edit this to bump (a deliberate,
+         reviewable version change); the patch is the number of commits since this line last changed,
+         and AssemblyVersion/FileVersion are assembled by CI (get-dotnet-version action).
+         Set VersionSuffix (e.g. beta) for a prerelease line. -->
+    <VersionPrefix>1.0</VersionPrefix>
+    <VersionSuffix>beta</VersionSuffix>
+  </PropertyGroup>
+
+</Project>
