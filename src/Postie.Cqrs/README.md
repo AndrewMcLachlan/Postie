@@ -94,6 +94,18 @@ public class TailHandler : IStreamQueryHandler<Tail, string>
 Stream queries have their own pipeline behaviors (`IStreamQueryPipelineBehavior<TQuery, TResponse>`,
 registered with `AddStreamQueryPipelineBehavior`) and are mapped to endpoints with `MapStreamQuery`.
 
+## OpenTelemetry
+
+The dispatcher records an activity per query, command and stream query (tagged with the request kind and
+type). Add the source to your tracer to collect them:
+
+```csharp
+builder.Services.AddOpenTelemetry().WithTracing(t => t.AddSource(PostieDiagnostics.ActivitySourceName));
+```
+
+When nothing is listening the dispatch takes an allocation-free fast path, so tracing costs nothing until
+you opt in.
+
 For ready-made FluentValidation behaviors see [Postie.Cqrs.FluentValidation](https://www.nuget.org/packages/Postie.Cqrs.FluentValidation).
 
 ## Map to minimal API endpoints

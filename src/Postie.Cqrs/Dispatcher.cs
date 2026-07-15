@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Postie.Cqrs.Commands;
 using Postie.Cqrs.Queries;
@@ -48,7 +50,9 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         var handler = serviceProvider.GetRequiredService(handlerType);
         var typedInvoker = (Func<object, object, CancellationToken, ValueTask<TResponse>>)invoker;
 
-        return Pipeline(query, queryType, QueryBehaviorGenericType, () => typedInvoker(handler, query, cancellationToken), cancellationToken);
+        var activity = StartActivity("query", queryType);
+        var pending = Pipeline(query, queryType, QueryBehaviorGenericType, () => typedInvoker(handler, query, cancellationToken), cancellationToken);
+        return activity is null ? pending : Awaited(activity, pending);
     }
 
     public ValueTask<TResponse> Dispatch<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken = default)
@@ -68,7 +72,9 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         var handler = serviceProvider.GetRequiredService(handlerType);
         var typedInvoker = (Func<object, object, CancellationToken, ValueTask<TResponse>>)invoker;
 
-        return Pipeline(command, commandType, CommandBehaviorGenericType, () => typedInvoker(handler, command, cancellationToken), cancellationToken);
+        var activity = StartActivity("command", commandType);
+        var pending = Pipeline(command, commandType, CommandBehaviorGenericType, () => typedInvoker(handler, command, cancellationToken), cancellationToken);
+        return activity is null ? pending : Awaited(activity, pending);
     }
 
     public ValueTask Execute(ICommand command, CancellationToken cancellationToken = default)
@@ -98,7 +104,9 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         var handler = serviceProvider.GetRequiredService(handlerType);
         var typedInvoker = (Func<object, object, CancellationToken, ValueTask>)invoker;
 
-        return VoidPipeline(command, commandType, () => typedInvoker(handler, command, cancellationToken), cancellationToken);
+        var activity = StartActivity("command", commandType);
+        var pending = VoidPipeline(command, commandType, () => typedInvoker(handler, command, cancellationToken), cancellationToken);
+        return activity is null ? pending : Awaited(activity, pending);
     }
 
     public IAsyncEnumerable<TResponse> Dispatch<TResponse>(IStreamQuery<TResponse> query, CancellationToken cancellationToken = default)
@@ -118,7 +126,9 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         var handler = serviceProvider.GetRequiredService(handlerType);
         var typedInvoker = (Func<object, object, CancellationToken, IAsyncEnumerable<TResponse>>)invoker;
 
-        return StreamPipeline(query, queryType, () => typedInvoker(handler, query, cancellationToken), cancellationToken);
+        var activity = StartActivity("stream", queryType);
+        var stream = StreamPipeline(query, queryType, () => typedInvoker(handler, query, cancellationToken), cancellationToken);
+        return activity is null ? stream : Enumerate(activity, stream, cancellationToken);
     }
 
     // Folds any registered behaviors around the terminal handler call. When none are registered the
@@ -193,6 +203,85 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         }
 
         return next();
+    }
+
+    // Returns a started activity, or null when nothing is listening (the common case) so the fast path
+    // pays only a cheap HasListeners check and no string allocation.
+    private static Activity? StartActivity(string kind, Type requestType)
+    {
+        if (!PostieDiagnostics.ActivitySource.HasListeners())
+        {
+            return null;
+        }
+
+        var activity = PostieDiagnostics.ActivitySource.StartActivity($"Postie {requestType.Name}");
+        if (activity is not null)
+        {
+            activity.SetTag("postie.request_kind", kind);
+            activity.SetTag("postie.request_type", requestType.FullName);
+        }
+
+        return activity;
+    }
+
+    private static async ValueTask<TResponse> Awaited<TResponse>(Activity activity, ValueTask<TResponse> pending)
+    {
+        using (activity)
+        {
+            try
+            {
+                return await pending;
+            }
+            catch (Exception ex)
+            {
+                activity.SetStatus(ActivityStatusCode.Error, ex.Message);
+                throw;
+            }
+        }
+    }
+
+    private static async ValueTask Awaited(Activity activity, ValueTask pending)
+    {
+        using (activity)
+        {
+            try
+            {
+                await pending;
+            }
+            catch (Exception ex)
+            {
+                activity.SetStatus(ActivityStatusCode.Error, ex.Message);
+                throw;
+            }
+        }
+    }
+
+    private static async IAsyncEnumerable<TResponse> Enumerate<TResponse>(Activity activity, IAsyncEnumerable<TResponse> source, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        using (activity)
+        {
+            await using var enumerator = source.GetAsyncEnumerator(cancellationToken);
+            while (true)
+            {
+                bool hasNext;
+                try
+                {
+                    hasNext = await enumerator.MoveNextAsync();
+                }
+                catch (Exception ex)
+                {
+                    activity.SetStatus(ActivityStatusCode.Error, ex.Message);
+                    throw;
+                }
+
+                if (!hasNext)
+                {
+                    break;
+                }
+
+                yield return enumerator.Current;
+            }
+        }
     }
 
     private static Func<object, object, CancellationToken, ValueTask<TResponse>> BuildInvoker<TResponse>(Type handlerType, Type requestType)

@@ -119,6 +119,16 @@ behaviors:
 builder.Services.AddPostieValidation(typeof(CreateOrder).Assembly);
 ```
 
+## OpenTelemetry
+
+The dispatcher records an activity per query, command and stream query. Add the source to your tracer:
+
+```csharp
+builder.Services.AddOpenTelemetry().WithTracing(t => t.AddSource(PostieDiagnostics.ActivitySourceName));
+```
+
+Tracing costs nothing until you opt in — with no listener the dispatch takes an allocation-free fast path.
+
 ## Error handling
 
 Postie's endpoint layer doesn't translate exceptions — handlers throw, and your exception handling maps
