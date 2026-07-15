@@ -84,6 +84,22 @@ public class MediatREndpointMappingTests
     }
 
     /// <summary>
+    /// Given a MediatR stream request mapped with MapStreamQuery.
+    /// When the GET endpoint is called.
+    /// Then MediatR's CreateStream is used and the items come back as a JSON array.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapStreamQueryStreamsThroughMediatR()
+    {
+        var client = await StartAsync(app => app.MapStreamQuery<StreamWidgets, Widget>("/widgets/stream/{count}"));
+
+        var widgets = await client.GetFromJsonAsync<List<Widget>>("/widgets/stream/3", TestContext.Current.CancellationToken);
+
+        Assert.Equal([new Widget(1, "Widget 1"), new Widget(2, "Widget 2"), new Widget(3, "Widget 3")], widgets);
+    }
+
+    /// <summary>
     /// Given a no-response MediatR request mapped with MapDeleteCommand.
     /// When the DELETE endpoint is called.
     /// Then MediatR handles it and 204 No Content is returned.

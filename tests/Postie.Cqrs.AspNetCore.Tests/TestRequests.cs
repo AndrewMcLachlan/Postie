@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Mvc;
 using Postie.Cqrs.Commands;
 using Postie.Cqrs.Queries;
@@ -41,4 +42,19 @@ public record DeleteWidget(int Id) : ICommand;
 public class DeleteWidgetHandler : ICommandHandler<DeleteWidget>
 {
     public ValueTask Handle(DeleteWidget command, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+}
+
+// A streaming query.
+public record StreamWidgets(int Count) : IStreamQuery<Widget>;
+
+public class StreamWidgetsHandler : IStreamQueryHandler<StreamWidgets, Widget>
+{
+    public async IAsyncEnumerable<Widget> Handle(StreamWidgets query, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        for (var i = 1; i <= query.Count; i++)
+        {
+            await Task.Yield();
+            yield return new Widget(i, $"Widget {i}");
+        }
+    }
 }

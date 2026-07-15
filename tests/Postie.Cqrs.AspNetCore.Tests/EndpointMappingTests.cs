@@ -83,6 +83,22 @@ public class EndpointMappingTests
     }
 
     /// <summary>
+    /// Given a streaming query mapped with MapStreamQuery.
+    /// When the GET endpoint is called.
+    /// Then the handler's items are streamed back as a JSON array.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapStreamQueryStreamsItems()
+    {
+        var client = await StartAsync(app => app.MapStreamQuery<StreamWidgets, Widget>("/widgets/stream/{count}"));
+
+        var widgets = await client.GetFromJsonAsync<List<Widget>>("/widgets/stream/3", TestContext.Current.CancellationToken);
+
+        Assert.Equal([new Widget(1, "Widget 1"), new Widget(2, "Widget 2"), new Widget(3, "Widget 3")], widgets);
+    }
+
+    /// <summary>
     /// Given a no-response command mapped with MapDeleteCommand.
     /// When the DELETE endpoint is called.
     /// Then the command is executed and 204 No Content is returned.

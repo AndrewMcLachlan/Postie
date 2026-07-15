@@ -25,6 +25,23 @@ public static class PostieEndpointRouteBuilderExtensions
                  .Produces<TResponse>();
 
     /// <summary>
+    /// Maps a GET request to a streaming query, returning the results as an asynchronous stream. The query
+    /// is bound from route, query and header values.
+    /// </summary>
+    /// <remarks>
+    /// Requires an <see cref="IStreamEndpointDispatcher"/> to be registered (the Postie and MediatR
+    /// adapters register one automatically).
+    /// </remarks>
+    /// <typeparam name="TRequest">The type of the query.</typeparam>
+    /// <typeparam name="TResponse">The type of each streamed item.</typeparam>
+    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
+    /// <param name="pattern">The route pattern.</param>
+    /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
+    public static RouteHandlerBuilder MapStreamQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern) where TRequest : notnull =>
+        endpoints.MapGet(pattern, EndpointHandlers.StreamQuery<TRequest, TResponse>())
+                 .Produces<IEnumerable<TResponse>>();
+
+    /// <summary>
     /// Maps a POST request to a command and returns its response.
     /// </summary>
     /// <typeparam name="TRequest">The type of the command.</typeparam>

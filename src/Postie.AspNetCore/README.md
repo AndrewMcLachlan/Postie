@@ -41,8 +41,13 @@ Every method returns the `RouteHandlerBuilder`, so you can chain `.WithName(...)
 | `MapPatchCommand<TCommand, TResponse>` | PATCH | 200 |
 | `MapPostCreate<TCommand, TResponse>` / `MapPutCreate<...>` | POST / PUT | 201 + `Location` |
 | `MapDeleteCommand<TCommand>` / `MapDeleteCommand<TCommand, TResponse>` | DELETE | 204 / 200 |
+| `MapStreamQuery<TQuery, TResponse>` | GET | 200 (streamed) |
 
 Pass a status code to override the default (e.g. `MapCommand<Submit, Receipt>("/submit", StatusCodes.Status202Accepted)`).
+
+`MapStreamQuery` maps a streaming query (returning `IAsyncEnumerable<TResponse>`) and requires an
+`IStreamEndpointDispatcher` — a separate, optional companion to `IEndpointDispatcher` that the Postie and
+MediatR adapters register automatically. A roll-your-own mediator only needs to implement it to map streams.
 
 ## Request binding
 

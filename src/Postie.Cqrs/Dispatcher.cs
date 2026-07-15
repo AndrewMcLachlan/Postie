@@ -6,15 +6,17 @@ using Postie.Cqrs.Queries;
 
 namespace Postie.Cqrs;
 
-internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, ICommandDispatcher
+internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, ICommandDispatcher, IStreamQueryDispatcher
 {
     private static readonly Type QueryHandlerGenericType = typeof(IQueryHandler<,>);
     private static readonly Type CommandHandlerGenericType = typeof(ICommandHandler<,>);
     private static readonly Type CommandHandlerVoidGenericType = typeof(ICommandHandler<>);
+    private static readonly Type StreamQueryHandlerGenericType = typeof(IStreamQueryHandler<,>);
 
     private static readonly Type QueryBehaviorGenericType = typeof(IQueryPipelineBehavior<,>);
     private static readonly Type CommandBehaviorGenericType = typeof(ICommandPipelineBehavior<,>);
     private static readonly Type CommandBehaviorVoidGenericType = typeof(ICommandPipelineBehavior<>);
+    private static readonly Type StreamQueryBehaviorGenericType = typeof(IStreamQueryPipelineBehavior<,>);
 
     // Compiled Handle invokers, cached for the process lifetime. Calling Handle through a compiled
     // delegate avoids per-dispatch reflection (MethodInfo.Invoke + argument array) and surfaces a
@@ -22,10 +24,12 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
     private static readonly ConcurrentDictionary<(Type Request, Type Response), (Type HandlerType, Delegate Invoker)> QueryHandlers = new();
     private static readonly ConcurrentDictionary<(Type Request, Type Response), (Type HandlerType, Delegate Invoker)> CommandHandlers = new();
     private static readonly ConcurrentDictionary<Type, (Type HandlerType, Delegate Invoker)> VoidCommandHandlers = new();
+    private static readonly ConcurrentDictionary<(Type Request, Type Response), (Type HandlerType, Delegate Invoker)> StreamQueryHandlers = new();
 
     // Compiled behavior invokers, keyed by the closed behavior interface type.
     private static readonly ConcurrentDictionary<Type, Delegate> ResponseBehaviorInvokers = new();
     private static readonly ConcurrentDictionary<Type, Delegate> VoidBehaviorInvokers = new();
+    private static readonly ConcurrentDictionary<Type, Delegate> StreamBehaviorInvokers = new();
 
     public ValueTask<TResponse> Dispatch<TResponse>(IQuery<TResponse> query, CancellationToken cancellationToken = default)
     {
@@ -97,6 +101,26 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         return VoidPipeline(command, commandType, () => typedInvoker(handler, command, cancellationToken), cancellationToken);
     }
 
+    public IAsyncEnumerable<TResponse> Dispatch<TResponse>(IStreamQuery<TResponse> query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var queryType = query.GetType();
+
+        var (handlerType, invoker) = StreamQueryHandlers.GetOrAdd(
+            (queryType, typeof(TResponse)),
+            static key =>
+            {
+                var handlerType = StreamQueryHandlerGenericType.MakeGenericType(key.Request, key.Response);
+                return (handlerType, BuildStreamInvoker<TResponse>(handlerType, key.Request));
+            });
+
+        var handler = serviceProvider.GetRequiredService(handlerType);
+        var typedInvoker = (Func<object, object, CancellationToken, IAsyncEnumerable<TResponse>>)invoker;
+
+        return StreamPipeline(query, queryType, () => typedInvoker(handler, query, cancellationToken), cancellationToken);
+    }
+
     // Folds any registered behaviors around the terminal handler call. When none are registered the
     // terminal delegate is invoked directly, so the common case allocates no chain.
     private ValueTask<TResponse> Pipeline<TResponse>(object request, Type requestType, Type behaviorGenericType, RequestHandlerDelegate<TResponse> terminal, CancellationToken cancellationToken)
@@ -135,6 +159,30 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
 
         var invoker = (Func<object, object, RequestHandlerDelegate, CancellationToken, ValueTask>)
             VoidBehaviorInvokers.GetOrAdd(behaviorType, static (bt, rt) => BuildVoidBehaviorInvoker(bt, rt), requestType);
+
+        var next = terminal;
+        for (var i = behaviors.Length - 1; i >= 0; i--)
+        {
+            var behavior = behaviors[i];
+            var captured = next;
+            next = () => invoker(behavior, request, captured, cancellationToken);
+        }
+
+        return next();
+    }
+
+    private IAsyncEnumerable<TResponse> StreamPipeline<TResponse>(object request, Type requestType, StreamHandlerDelegate<TResponse> terminal, CancellationToken cancellationToken)
+    {
+        var behaviorType = StreamQueryBehaviorGenericType.MakeGenericType(requestType, typeof(TResponse));
+        var behaviors = serviceProvider.GetServices(behaviorType).OfType<object>().ToArray();
+
+        if (behaviors.Length == 0)
+        {
+            return terminal();
+        }
+
+        var invoker = (Func<object, object, StreamHandlerDelegate<TResponse>, CancellationToken, IAsyncEnumerable<TResponse>>)
+            StreamBehaviorInvokers.GetOrAdd(behaviorType, static (bt, rt) => BuildStreamBehaviorInvoker<TResponse>(bt, rt), requestType);
 
         var next = terminal;
         for (var i = behaviors.Length - 1; i >= 0; i--)
@@ -210,6 +258,31 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
             cancellationTokenParam);
 
         return Expression.Lambda<Func<object, object, RequestHandlerDelegate, CancellationToken, ValueTask>>(
+            call, behaviorParam, requestParam, nextParam, cancellationTokenParam).Compile();
+    }
+
+    private static Func<object, object, CancellationToken, IAsyncEnumerable<TResponse>> BuildStreamInvoker<TResponse>(Type handlerType, Type requestType)
+    {
+        var (handlerParam, requestParam, cancellationTokenParam, call) = BuildHandleCall(handlerType, requestType);
+        return Expression.Lambda<Func<object, object, CancellationToken, IAsyncEnumerable<TResponse>>>(call, handlerParam, requestParam, cancellationTokenParam).Compile();
+    }
+
+    private static Func<object, object, StreamHandlerDelegate<TResponse>, CancellationToken, IAsyncEnumerable<TResponse>> BuildStreamBehaviorInvoker<TResponse>(Type behaviorType, Type requestType)
+    {
+        var handleMethod = behaviorType.GetMethod("Handle")!;
+        var behaviorParam = Expression.Parameter(typeof(object), "behavior");
+        var requestParam = Expression.Parameter(typeof(object), "request");
+        var nextParam = Expression.Parameter(typeof(StreamHandlerDelegate<TResponse>), "next");
+        var cancellationTokenParam = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
+
+        var call = Expression.Call(
+            Expression.Convert(behaviorParam, behaviorType),
+            handleMethod,
+            Expression.Convert(requestParam, requestType),
+            nextParam,
+            cancellationTokenParam);
+
+        return Expression.Lambda<Func<object, object, StreamHandlerDelegate<TResponse>, CancellationToken, IAsyncEnumerable<TResponse>>>(
             call, behaviorParam, requestParam, nextParam, cancellationTokenParam).Compile();
     }
 }

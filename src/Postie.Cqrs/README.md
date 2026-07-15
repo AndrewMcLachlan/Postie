@@ -73,6 +73,27 @@ builder.Services.AddQueryPipelineBehavior(typeof(TimingBehavior<,>));
 Use `AddCommandPipelineBehavior` for command behaviors (`ICommandPipelineBehavior<TCommand, TResponse>` or
 `ICommandPipelineBehavior<TCommand>`). Behaviors run in registration order, each surrounding the next.
 
+## Streaming queries
+
+For queries that return a stream of results, implement `IStreamQuery<TResponse>` and
+`IStreamQueryHandler<TQuery, TResponse>` (returning `IAsyncEnumerable<TResponse>`) and dispatch through
+`IStreamQueryDispatcher`:
+
+```csharp
+public record Tail(string File) : IStreamQuery<string>;
+
+public class TailHandler : IStreamQueryHandler<Tail, string>
+{
+    public async IAsyncEnumerable<string> Handle(Tail query, [EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var line in ReadLines(query.File, ct)) yield return line;
+    }
+}
+```
+
+Stream queries have their own pipeline behaviors (`IStreamQueryPipelineBehavior<TQuery, TResponse>`,
+registered with `AddStreamQueryPipelineBehavior`) and are mapped to endpoints with `MapStreamQuery`.
+
 For ready-made FluentValidation behaviors see [Postie.Cqrs.FluentValidation](https://www.nuget.org/packages/Postie.Cqrs.FluentValidation).
 
 ## Map to minimal API endpoints

@@ -95,9 +95,13 @@ builder.Services.AddTransient<IEndpointDispatcher, MyEndpointDispatcher>();
 | `MapPatchCommand<TCommand, TResponse>` | PATCH | 200 | body |
 | `MapPostCreate<TCommand, TResponse>` / `MapPutCreate<...>` | POST / PUT | 201 + `Location` | body |
 | `MapDeleteCommand<TCommand>` / `MapDeleteCommand<TCommand, TResponse>` | DELETE | 204 / 200 | route/query |
+| `MapStreamQuery<TQuery, TResponse>` | GET | 200 (streamed) | route/query |
 
 Command methods take a `RequestBinding` (`Body`, `Parameters`, or `Default`) to override the default —
 use `Parameters` for hybrid endpoints that bind an id from the route and a payload from the body.
+
+Streaming queries (`IStreamQuery<TResponse>` returning `IAsyncEnumerable<TResponse>`) map with
+`MapStreamQuery` and stream their results as they are produced.
 
 ## Pipeline behaviors and validation
 

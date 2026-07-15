@@ -9,7 +9,7 @@ namespace Postie.AspNetCore.MediatR;
 /// <see cref="IRequest{TResponse}"/> types.
 /// </summary>
 /// <param name="sender">The MediatR sender.</param>
-internal sealed class MediatREndpointDispatcher(ISender sender) : IEndpointDispatcher
+internal sealed class MediatREndpointDispatcher(ISender sender) : IEndpointDispatcher, IStreamEndpointDispatcher
 {
     public ValueTask<TResponse> DispatchAsync<TResponse>(object request, CancellationToken cancellationToken)
     {
@@ -31,5 +31,18 @@ internal sealed class MediatREndpointDispatcher(ISender sender) : IEndpointDispa
         // A no-response MediatR request implements IRequest (i.e. IRequest<Unit>). The object-typed
         // Send overload dispatches it; the Unit result is discarded.
         return new ValueTask(sender.Send(request, cancellationToken));
+    }
+
+    public IAsyncEnumerable<TResponse> DispatchStream<TResponse>(object request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (request is not IStreamRequest<TResponse> streamRequest)
+        {
+            throw new InvalidOperationException(
+                $"Request '{request.GetType().Name}' is not an IStreamRequest<{typeof(TResponse).Name}>. Map it with a MediatR stream request type that returns the matching item.");
+        }
+
+        return sender.CreateStream(streamRequest, cancellationToken);
     }
 }

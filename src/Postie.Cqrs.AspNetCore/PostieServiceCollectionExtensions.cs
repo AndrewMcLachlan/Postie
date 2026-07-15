@@ -43,6 +43,7 @@ public static class PostieServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddTransient<IEndpointDispatcher, PostieEndpointDispatcher>();
+        services.TryAddTransient<IStreamEndpointDispatcher, PostieEndpointDispatcher>();
 
         return services;
     }

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -39,4 +40,18 @@ public record DeleteWidget(int Id) : IRequest;
 public class DeleteWidgetHandler : IRequestHandler<DeleteWidget>
 {
     public Task Handle(DeleteWidget request, CancellationToken cancellationToken) => Task.CompletedTask;
+}
+
+public record StreamWidgets(int Count) : IStreamRequest<Widget>;
+
+public class StreamWidgetsHandler : IStreamRequestHandler<StreamWidgets, Widget>
+{
+    public async IAsyncEnumerable<Widget> Handle(StreamWidgets request, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        for (var i = 1; i <= request.Count; i++)
+        {
+            await Task.Yield();
+            yield return new Widget(i, $"Widget {i}");
+        }
+    }
 }
