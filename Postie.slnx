@@ -22,9 +22,12 @@
   <Folder Name="/src/">
     <File Path="src/Directory.Build.props" />
     <Project Path="src/Postie.Cqrs/Postie.Cqrs.csproj" />
+    <Project Path="src/Postie.AspNetCore/Postie.AspNetCore.csproj" />
+    <Project Path="src/Postie.Cqrs.AspNetCore/Postie.Cqrs.AspNetCore.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />
     <Project Path="tests/Postie.Cqrs.Tests/Postie.Cqrs.Tests.csproj" />
+    <Project Path="tests/Postie.Cqrs.AspNetCore.Tests/Postie.Cqrs.AspNetCore.Tests.csproj" />
   </Folder>
 </Solution>
