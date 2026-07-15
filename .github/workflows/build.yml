@@ -52,7 +52,7 @@ jobs:
       run: dotnet pack Postie.slnx --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.set-version-number.outputs.version }}
 
     - name: Upload packages
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: packages
         path: ${{ github.workspace }}/publish/**/*.nupkg
