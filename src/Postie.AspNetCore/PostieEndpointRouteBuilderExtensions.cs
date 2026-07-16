@@ -65,8 +65,7 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     public static RouteHandlerBuilder MapCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
         endpoints.MapPost(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
-                 .Produces<TResponse>(statusCode)
-                 .ProducesValidationProblem();
+                 .Produces<TResponse>(statusCode);
 
     /// <summary>
     /// Maps a POST request to a command that returns no body, responding with <paramref name="statusCode"/>
@@ -80,8 +79,7 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     public static RouteHandlerBuilder MapCommand<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status204NoContent, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
         endpoints.MapPost(pattern, EndpointHandlers.VoidCommand<TRequest>(statusCode, binding))
-                 .Produces(statusCode)
-                 .ProducesValidationProblem();
+                 .Produces(statusCode);
 
     /// <summary>
     /// Maps a PUT request to a command and returns its response.
@@ -95,8 +93,7 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     public static RouteHandlerBuilder MapPutCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
         endpoints.MapPut(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
-                 .Produces<TResponse>(statusCode)
-                 .ProducesValidationProblem();
+                 .Produces<TResponse>(statusCode);
 
     /// <summary>
     /// Maps a PUT request to a command that returns no body, responding with <paramref name="statusCode"/>
@@ -110,8 +107,7 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     public static RouteHandlerBuilder MapPutCommand<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status204NoContent, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
         endpoints.MapPut(pattern, EndpointHandlers.VoidCommand<TRequest>(statusCode, binding))
-                 .Produces(statusCode)
-                 .ProducesValidationProblem();
+                 .Produces(statusCode);
 
     /// <summary>
     /// Maps a PATCH request to a command and returns its response.
@@ -125,8 +121,7 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     public static RouteHandlerBuilder MapPatchCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
         endpoints.MapPatch(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
-                 .Produces<TResponse>(statusCode)
-                 .ProducesValidationProblem();
+                 .Produces<TResponse>(statusCode);
 
     /// <summary>
     /// Maps a POST request to a command that creates a resource, returning 201 Created with a
@@ -157,8 +152,7 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     public static RouteHandlerBuilder MapPostCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TRequest, TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
         endpoints.MapPost(pattern, EndpointHandlers.Create<TRequest, TResponse>(routeName, getRouteValues, binding))
-                 .Produces<TResponse>(StatusCodes.Status201Created)
-                 .ProducesValidationProblem();
+                 .Produces<TResponse>(StatusCodes.Status201Created);
 
     /// <summary>
     /// Maps a PUT request to a command that creates a resource, returning 201 Created with a
@@ -174,8 +168,7 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     public static RouteHandlerBuilder MapPutCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
         endpoints.MapPut(pattern, EndpointHandlers.Create<TRequest, TResponse>(routeName, (_, response) => getRouteValues(response), binding))
-                 .Produces<TResponse>(StatusCodes.Status201Created)
-                 .ProducesValidationProblem();
+                 .Produces<TResponse>(StatusCodes.Status201Created);
 
     /// <summary>
     /// Maps a DELETE request to a command that deletes a resource, returning 204 No Content.

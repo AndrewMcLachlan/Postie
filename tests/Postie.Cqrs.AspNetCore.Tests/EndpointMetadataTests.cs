@@ -47,4 +47,19 @@ public class EndpointMetadataTests
 
         Assert.DoesNotContain(produces, m => m.StatusCode == StatusCodes.Status404NotFound);
     }
+
+    /// <summary>
+    /// Given a command mapped with MapCommand.
+    /// When its endpoint metadata is inspected.
+    /// Then no 400 response is advertised — Postie never produces one itself; consumers who wire
+    /// validation chain ProducesValidationProblem on the returned builder.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void MapCommandDoesNotAdvertiseValidationProblemByDefault()
+    {
+        var produces = ProducesFor(app => app.MapCommand<SubmitWidget, Widget>("/widgets"));
+
+        Assert.DoesNotContain(produces, m => m.StatusCode == StatusCodes.Status400BadRequest);
+    }
 }
