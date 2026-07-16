@@ -26,7 +26,7 @@ var orders = app.MapGroup("/orders");
 orders.MapQuery<GetOrders, IReadOnlyList<Order>>("/");
 orders.MapQuery<GetOrder, Order>("/{id}").WithName("GetOrder");
 orders.MapPostCreate<CreateOrder, Order>("/", "GetOrder", o => new { id = o.Id });
-orders.MapPutCommand<UpdateOrder, Order>("/{id}");
+orders.MapPutCommand<UpdateOrder, Order>("/{id}", binding: RequestBinding.Parameters);
 orders.MapDeleteCommand<DeleteOrder>("/{id}");
 ```
 
