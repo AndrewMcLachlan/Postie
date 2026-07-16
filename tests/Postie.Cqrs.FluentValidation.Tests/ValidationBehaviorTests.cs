@@ -149,4 +149,36 @@ public class ValidationBehaviorTests
 
         Assert.Equal("Ada", result);
     }
+
+    /// <summary>
+    /// Given no assemblies passed to AddPostieValidation.
+    /// When registration runs.
+    /// Then an ArgumentException directs the caller to pass an assembly or use the generic overload.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AddPostieValidationWithNoAssembliesThrows()
+    {
+        var services = new ServiceCollection();
+
+        var exception = Assert.Throws<ArgumentException>(() => services.AddPostieValidation());
+
+        Assert.Equal("assemblies", exception.ParamName);
+    }
+
+    /// <summary>
+    /// Given a marker type from the validators assembly.
+    /// When AddPostieValidation is called with the generic marker overload.
+    /// Then validators from the marker's assembly are registered.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AddPostieValidationWithMarkerRegistersValidators()
+    {
+        var services = new ServiceCollection();
+
+        services.AddPostieValidation<CreateUserValidator>();
+
+        Assert.Contains(services, s => s.ServiceType.IsGenericType && s.ServiceType.GetGenericTypeDefinition() == typeof(IValidator<>));
+    }
 }

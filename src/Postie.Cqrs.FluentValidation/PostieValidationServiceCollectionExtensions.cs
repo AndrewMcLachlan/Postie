@@ -15,15 +15,18 @@ public static class PostieValidationServiceCollectionExtensions
     /// <see cref="global::FluentValidation.ValidationException"/>.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
-    /// <param name="assemblies">The assemblies to scan for <see cref="IValidator{T}"/> implementations. Defaults to the calling assembly when none are supplied.</param>
+    /// <param name="assemblies">The assemblies to scan for <see cref="IValidator{T}"/> implementations. At least one is required.</param>
     /// <returns>The same service collection so that multiple calls can be chained.</returns>
     public static IServiceCollection AddPostieValidation(this IServiceCollection services, params Assembly[] assemblies)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(assemblies);
 
-        if (assemblies is null || assemblies.Length == 0)
+        // No silent calling-assembly fallback: Assembly.GetCallingAssembly is unreliable under
+        // inlining, and the calling assembly is usually the host, not where the validators live.
+        if (assemblies.Length == 0)
         {
-            assemblies = [Assembly.GetCallingAssembly()];
+            throw new ArgumentException("Specify at least one assembly to scan for validators, or use AddPostieValidation<TMarker>().", nameof(assemblies));
         }
 
         services.AddValidatorsFromAssemblies(assemblies, includeInternalTypes: true);
@@ -34,4 +37,14 @@ public static class PostieValidationServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Registers the FluentValidation pipeline behaviors and the validators found in the assembly
+    /// containing <typeparamref name="TMarker"/>.
+    /// </summary>
+    /// <typeparam name="TMarker">Any type from the assembly to scan for validators.</typeparam>
+    /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
+    /// <returns>The same service collection so that multiple calls can be chained.</returns>
+    public static IServiceCollection AddPostieValidation<TMarker>(this IServiceCollection services) =>
+        services.AddPostieValidation(typeof(TMarker).Assembly);
 }
