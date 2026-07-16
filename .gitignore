@@ -337,3 +337,6 @@ ASALocalRun/
 
 # Superpowers working documents (specs, plans)
 docs/superpowers/
+
+# SDD scratch
+.superpowers/
