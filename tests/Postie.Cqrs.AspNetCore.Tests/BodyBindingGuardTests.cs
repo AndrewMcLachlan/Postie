@@ -1,0 +1,61 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Postie.AspNetCore;
+
+namespace Postie.Cqrs.AspNetCore.Tests;
+
+public class BodyBindingGuardTests
+{
+    private static WebApplication BuildApp()
+    {
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.Services.AddPostie(typeof(GetGreeting).Assembly);
+        return builder.Build();
+    }
+
+    /// <summary>
+    /// Given a command with [FromRoute] and [FromBody] members.
+    /// When it is mapped with the default Body binding.
+    /// Then mapping throws at startup naming the command and the fix, instead of silently ignoring the attributes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void BodyBindingWithBindingSourceAttributesThrowsAtMapTime()
+    {
+        var app = BuildApp();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => app.MapPutCommand<RenameWidget, Widget>("/widgets/{id}"));
+
+        Assert.Contains(nameof(RenameWidget), exception.Message);
+        Assert.Contains("Id", exception.Message);
+        Assert.Contains(nameof(RequestBinding.Parameters), exception.Message);
+    }
+
+    /// <summary>
+    /// Given the same hybrid command.
+    /// When it is mapped with Parameters binding.
+    /// Then mapping succeeds.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ParametersBindingWithBindingSourceAttributesMapsCleanly()
+    {
+        var app = BuildApp();
+
+        app.MapPutCommand<RenameWidget, Widget>("/widgets/{id}", binding: RequestBinding.Parameters);
+    }
+
+    /// <summary>
+    /// Given a command with no binding-source attributes.
+    /// When it is mapped with Body binding.
+    /// Then mapping succeeds.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void BodyBindingWithoutBindingSourceAttributesMapsCleanly()
+    {
+        var app = BuildApp();
+
+        app.MapCommand<SubmitWidget, Widget>("/widgets");
+    }
+}

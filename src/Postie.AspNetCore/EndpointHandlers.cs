@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Postie.AspNetCore;
@@ -53,11 +54,56 @@ internal static class EndpointHandlers
     // Applies the requested binding by re-declaring the request parameter with the matching attribute.
     // The attribute must sit on the delegate's parameter for minimal API binding to honour it, so a
     // separate lambda is produced per binding rather than branching inside one handler.
-    private static Delegate Bind<TRequest>(Func<TRequest, IEndpointDispatcher, CancellationToken, Task<IResult>> core, RequestBinding binding) where TRequest : notnull =>
-        binding switch
+    private static Delegate Bind<TRequest>(Func<TRequest, IEndpointDispatcher, CancellationToken, Task<IResult>> core, RequestBinding binding) where TRequest : notnull
+    {
+        if (binding == RequestBinding.Body)
+        {
+            GuardBodyBinding<TRequest>();
+        }
+
+        return binding switch
         {
             RequestBinding.Body => ([FromBody] TRequest request, IEndpointDispatcher dispatcher, CancellationToken cancellationToken) => core(request, dispatcher, cancellationToken),
             RequestBinding.Parameters => ([AsParameters] TRequest request, IEndpointDispatcher dispatcher, CancellationToken cancellationToken) => core(request, dispatcher, cancellationToken),
             _ => (TRequest request, IEndpointDispatcher dispatcher, CancellationToken cancellationToken) => core(request, dispatcher, cancellationToken),
         };
+    }
+
+    // Body binding deserialises the whole command from the request body, so per-member binding-source
+    // attributes are silently ignored — almost certainly a configuration mistake. Runs once per
+    // endpoint at map time, so mapping fails at startup rather than mis-binding per request.
+    private static void GuardBodyBinding<TRequest>()
+    {
+        List<string> offending = [];
+
+        foreach (var property in typeof(TRequest).GetProperties())
+        {
+            if (HasBindingSourceAttribute(property))
+            {
+                offending.Add(property.Name);
+            }
+        }
+
+        foreach (var constructor in typeof(TRequest).GetConstructors())
+        {
+            foreach (var parameter in constructor.GetParameters())
+            {
+                if (HasBindingSourceAttribute(parameter) && parameter.Name is not null && !offending.Contains(parameter.Name))
+                {
+                    offending.Add(parameter.Name);
+                }
+            }
+        }
+
+        if (offending.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Command '{typeof(TRequest).Name}' is mapped with RequestBinding.Body, but member(s) {String.Join(", ", offending)} have [FromRoute]/[FromQuery]/[FromHeader] attributes that are ignored when the whole command binds from the body. Map the endpoint with RequestBinding.Parameters to bind members from different sources.");
+        }
+    }
+
+    private static bool HasBindingSourceAttribute(ICustomAttributeProvider member) =>
+        member.IsDefined(typeof(FromRouteAttribute), inherit: true) ||
+        member.IsDefined(typeof(FromQueryAttribute), inherit: true) ||
+        member.IsDefined(typeof(FromHeaderAttribute), inherit: true);
 }
