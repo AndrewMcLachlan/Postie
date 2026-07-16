@@ -167,7 +167,23 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     public static RouteHandlerBuilder MapPutCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPut(pattern, EndpointHandlers.Create<TRequest, TResponse>(routeName, (_, response) => getRouteValues(response), binding))
+        endpoints.MapPutCreate<TRequest, TResponse>(pattern, routeName, (_, response) => getRouteValues(response), binding);
+
+    /// <summary>
+    /// Maps a PUT request to a command that creates a resource, returning 201 Created with a
+    /// <c>Location</c> header pointing at the named route. With PUT the resource identity usually
+    /// comes from the client, so the route values can be built from the command as well as the response.
+    /// </summary>
+    /// <typeparam name="TRequest">The type of the command.</typeparam>
+    /// <typeparam name="TResponse">The type of the response.</typeparam>
+    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
+    /// <param name="pattern">The route pattern.</param>
+    /// <param name="routeName">The name of the route that retrieves the created resource.</param>
+    /// <param name="getRouteValues">Builds the route values for the <c>Location</c> header from the command and the response.</param>
+    /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
+    /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
+    public static RouteHandlerBuilder MapPutCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TRequest, TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
+        endpoints.MapPut(pattern, EndpointHandlers.Create<TRequest, TResponse>(routeName, getRouteValues, binding))
                  .Produces<TResponse>(StatusCodes.Status201Created);
 
     /// <summary>

@@ -204,6 +204,28 @@ public class EndpointMappingTests
     }
 
     /// <summary>
+    /// Given a create command mapped with MapPutCreate using the request-aware route-values overload.
+    /// When the PUT endpoint is called.
+    /// Then the Location header is built from the request's values (the client-supplied identity).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapPutCreateBuildsLocationFromRequest()
+    {
+        var client = await StartAsync(app =>
+        {
+            app.MapQuery<GetGreeting, string>("/widgets/{name}").WithName("GetPutRequestWidget");
+            app.MapPutCreate<SubmitWidget, Widget>("/widgets", "GetPutRequestWidget", (request, _) => new { name = request.Name });
+        });
+
+        var response = await client.PutAsJsonAsync("/widgets", new SubmitWidget("FromRequest"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+        Assert.EndsWith("/widgets/FromRequest", response.Headers.Location.ToString());
+    }
+
+    /// <summary>
     /// Given a no-response command mapped with MapDeleteCommand.
     /// When the DELETE endpoint is called.
     /// Then the command is executed and 204 No Content is returned.
