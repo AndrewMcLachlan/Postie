@@ -94,3 +94,13 @@ public class CountWidgetsHandler : IQueryHandler<CountWidgets, int>
     public ValueTask<int> Handle(CountWidgets query, CancellationToken cancellationToken) =>
         new(query.Seed);
 }
+
+// A create command whose handler transforms the name, so request- and response-derived route values
+// differ — proving the request-aware MapPutCreate overload really uses the request.
+public record RegisterWidget(string Name) : ICommand<Widget>;
+
+public class RegisterWidgetHandler : ICommandHandler<RegisterWidget, Widget>
+{
+    public ValueTask<Widget> Handle(RegisterWidget command, CancellationToken cancellationToken) =>
+        new(new Widget(7, $"stored-{command.Name}"));
+}

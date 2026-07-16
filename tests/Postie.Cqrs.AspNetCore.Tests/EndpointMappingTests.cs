@@ -215,10 +215,10 @@ public class EndpointMappingTests
         var client = await StartAsync(app =>
         {
             app.MapQuery<GetGreeting, string>("/widgets/{name}").WithName("GetPutRequestWidget");
-            app.MapPutCreate<SubmitWidget, Widget>("/widgets", "GetPutRequestWidget", (request, _) => new { name = request.Name });
+            app.MapPutCreate<RegisterWidget, Widget>("/widgets", "GetPutRequestWidget", (request, _) => new { name = request.Name });
         });
 
-        var response = await client.PutAsJsonAsync("/widgets", new SubmitWidget("FromRequest"), TestContext.Current.CancellationToken);
+        var response = await client.PutAsJsonAsync("/widgets", new RegisterWidget("FromRequest"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.NotNull(response.Headers.Location);
