@@ -113,3 +113,6 @@ public class RegisterWidgetHandler : ICommandHandler<RegisterWidget, Widget>
     public ValueTask<Widget> Handle(RegisterWidget command, CancellationToken cancellationToken) =>
         new(new Widget(7, $"stored-{command.Name}"));
 }
+
+// A no-response hybrid command (route id + body payload), mapped only — used by the binding guard tests.
+public record ArchiveWidget([FromRoute] int Id, [FromBody] RenameWidgetBody Body) : ICommand;

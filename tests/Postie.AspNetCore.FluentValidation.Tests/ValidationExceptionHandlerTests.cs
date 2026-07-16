@@ -48,6 +48,27 @@ public class ValidationExceptionHandlerTests
     }
 
     /// <summary>
+    /// Given a command failing multiple rules across multiple properties.
+    /// When the endpoint is called with an invalid payload.
+    /// Then the 400 problem details groups the messages by property name.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task InvalidCommandGroupsErrorsByProperty()
+    {
+        var client = await StartAsync(app => app.MapCommand<ShipWidget, Widget>("/widgets/ship"));
+
+        var response = await client.PostAsJsonAsync("/widgets/ship", new ShipWidget("", 0), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(TestContext.Current.CancellationToken);
+        Assert.NotNull(problem);
+        Assert.Equal(2, problem.Errors.Count);
+        Assert.Equal(2, problem.Errors[nameof(ShipWidget.Name)].Length);
+        Assert.Single(problem.Errors[nameof(ShipWidget.Quantity)]);
+    }
+
+    /// <summary>
     /// Given a command with a passing validator.
     /// When the endpoint is called with a valid payload.
     /// Then the pipeline proceeds and 200 OK is returned.

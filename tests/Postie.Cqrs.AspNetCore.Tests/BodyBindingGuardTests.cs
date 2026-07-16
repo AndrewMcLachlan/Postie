@@ -58,4 +58,37 @@ public class BodyBindingGuardTests
 
         app.MapCommand<SubmitWidget, Widget>("/widgets");
     }
+
+    /// <summary>
+    /// Given a hybrid command with binding-source attributes.
+    /// When it is mapped with MapPostCreate (Body binding by default).
+    /// Then mapping throws at startup, proving the guard covers the create path.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void BodyBindingGuardCoversCreatePath()
+    {
+        var app = BuildApp();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            app.MapPostCreate<RenameWidget, Widget>("/widgets", "GetWidget", w => new { id = w.Id }));
+
+        Assert.Contains(nameof(RenameWidget), exception.Message);
+    }
+
+    /// <summary>
+    /// Given a no-response hybrid command with binding-source attributes.
+    /// When it is mapped with MapCommand (Body binding by default).
+    /// Then mapping throws at startup, proving the guard covers the void command path.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void BodyBindingGuardCoversVoidCommandPath()
+    {
+        var app = BuildApp();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => app.MapCommand<ArchiveWidget>("/widgets/archive"));
+
+        Assert.Contains(nameof(ArchiveWidget), exception.Message);
+    }
 }
