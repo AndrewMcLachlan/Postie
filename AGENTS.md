@@ -34,8 +34,8 @@ free forever — no commercial editions.
 
 - Shared build metadata lives in `Directory.Build.props` (root and `src/`); NuGet versions are centrally
   managed in `Directory.Packages.props`.
-- Versioning: `VersionPrefix` in `Directory.Build.props` is the deliberate Major.Minor; the patch is
-  derived by CI from commits since that line last changed (`get-dotnet-version` action). Set
-  `VersionSuffix` for prerelease lines.
+- Versioning: `Version` in `Directory.Build.props` is the deliberate Major.Minor.Patch; CI reads it
+  via the `get-version-number-from-project` action and appends a prerelease suffix (`-ci.N` for
+  GitHub Packages, `-beta.N` for a nuget.org prerelease).
 - CI publishes prerelease packages to GitHub Packages from `main`; releases to nuget.org are manual via
   the Release workflow.
