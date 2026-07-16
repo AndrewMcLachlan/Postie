@@ -15,15 +15,16 @@ public static class PostieServiceCollectionExtensions
     /// dispatcher so <c>MapQuery</c>/<c>MapCommand</c> and friends dispatch through Postie's mediator.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
-    /// <param name="assemblies">The assemblies to scan for handlers. Defaults to the calling assembly when none are supplied.</param>
+    /// <param name="assemblies">The assemblies to scan for handlers. At least one is required.</param>
     /// <returns>The same service collection so that multiple calls can be chained.</returns>
     public static IServiceCollection AddPostie(this IServiceCollection services, params Assembly[] assemblies)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(assemblies);
 
-        if (assemblies is null || assemblies.Length == 0)
+        if (assemblies.Length == 0)
         {
-            assemblies = [Assembly.GetCallingAssembly()];
+            throw new ArgumentException("Specify at least one assembly to scan for handlers, or use AddPostie<TMarker>().", nameof(assemblies));
         }
 
         services.AddCqrs(assemblies);
@@ -31,6 +32,17 @@ public static class PostieServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Registers Postie's command and query handlers from the assembly containing
+    /// <typeparamref name="TMarker"/> and wires the endpoint dispatcher so
+    /// <c>MapQuery</c>/<c>MapCommand</c> and friends dispatch through Postie's mediator.
+    /// </summary>
+    /// <typeparam name="TMarker">Any type from the assembly to scan for handlers.</typeparam>
+    /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
+    /// <returns>The same service collection so that multiple calls can be chained.</returns>
+    public static IServiceCollection AddPostie<TMarker>(this IServiceCollection services) =>
+        services.AddPostie(typeof(TMarker).Assembly);
 
     /// <summary>
     /// Registers only the Postie endpoint dispatcher, for when the command and query handlers are

@@ -21,15 +21,18 @@ public static class PostieCqrsServiceCollectionExtensions
     /// the given assemblies.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
-    /// <param name="assemblies">The assemblies to scan for handlers. Defaults to the calling assembly when none are supplied.</param>
+    /// <param name="assemblies">The assemblies to scan for handlers. At least one is required.</param>
     /// <returns>The same service collection so that multiple calls can be chained.</returns>
     public static IServiceCollection AddCqrs(this IServiceCollection services, params Assembly[] assemblies)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(assemblies);
 
-        if (assemblies is null || assemblies.Length == 0)
+        // No silent calling-assembly fallback: Assembly.GetCallingAssembly is unreliable under
+        // inlining, and the calling assembly is usually the host, not where the handlers live.
+        if (assemblies.Length == 0)
         {
-            assemblies = [Assembly.GetCallingAssembly()];
+            throw new ArgumentException("Specify at least one assembly to scan for handlers, or use AddCqrs<TMarker>().", nameof(assemblies));
         }
 
         foreach (var assembly in assemblies)
@@ -41,6 +44,16 @@ public static class PostieCqrsServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Adds the command and query dispatchers and registers every command and query handler found in
+    /// the assembly containing <typeparamref name="TMarker"/>.
+    /// </summary>
+    /// <typeparam name="TMarker">Any type from the assembly to scan for handlers.</typeparam>
+    /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
+    /// <returns>The same service collection so that multiple calls can be chained.</returns>
+    public static IServiceCollection AddCqrs<TMarker>(this IServiceCollection services) =>
+        services.AddCqrs(typeof(TMarker).Assembly);
 
     #region Commands
     /// <summary>

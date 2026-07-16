@@ -95,4 +95,40 @@ public class RegistrationTests
         Assert.Equal("ABC", queryResult);
         Assert.Equal([2, 1], streamed);
     }
+
+    /// <summary>
+    /// Given no assemblies passed to AddCqrs.
+    /// When registration runs.
+    /// Then an ArgumentException directs the caller to pass an assembly or use the generic overload,
+    /// instead of silently scanning the calling assembly.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AddCqrsWithNoAssembliesThrows()
+    {
+        var services = new ServiceCollection();
+
+        var exception = Assert.Throws<ArgumentException>(() => services.AddCqrs());
+
+        Assert.Equal("assemblies", exception.ParamName);
+    }
+
+    /// <summary>
+    /// Given a marker type from the handlers assembly.
+    /// When AddCqrs is called with the generic marker overload.
+    /// Then handlers from the marker's assembly are registered.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AddCqrsWithMarkerRegistersHandlersFromMarkerAssembly()
+    {
+        var services = new ServiceCollection();
+
+        services.AddCqrs<AddCqrsMarker>();
+
+        Assert.Contains(services, s => s.ServiceType.IsGenericType && s.ServiceType.GetGenericTypeDefinition() == typeof(Postie.Cqrs.Queries.IQueryHandler<,>));
+        Assert.Contains(services, s => s.ServiceType == typeof(Postie.Cqrs.Queries.IQueryDispatcher));
+    }
+
+    private sealed class AddCqrsMarker;
 }
