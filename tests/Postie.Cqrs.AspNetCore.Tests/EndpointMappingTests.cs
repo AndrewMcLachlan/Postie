@@ -218,4 +218,37 @@ public class EndpointMappingTests
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
+
+    /// <summary>
+    /// Given a query mapped with MapQuery whose handler returns null.
+    /// When the GET endpoint is called for a missing resource.
+    /// Then 404 Not Found is returned instead of 200 with a null body.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapQueryReturnsNotFoundWhenHandlerReturnsNull()
+    {
+        var client = await StartAsync(app => app.MapQuery<FindWidget, Widget>("/widgets/find/{id}"));
+
+        var response = await client.GetAsync("/widgets/find/0", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Given a query mapped with MapQuery whose handler returns a value.
+    /// When the GET endpoint is called for an existing resource.
+    /// Then the value is returned with 200 OK.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapQueryReturnsOkWhenHandlerReturnsValue()
+    {
+        var client = await StartAsync(app => app.MapQuery<FindWidget, Widget>("/widgets/find/{id}"));
+
+        var response = await client.GetAsync("/widgets/find/3", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(new Widget(3, "found"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
+    }
 }

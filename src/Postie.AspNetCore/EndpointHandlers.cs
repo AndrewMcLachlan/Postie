@@ -10,7 +10,10 @@ internal static class EndpointHandlers
 {
     internal static Delegate Query<TRequest, TResponse>() where TRequest : notnull =>
         async ([AsParameters] TRequest request, IEndpointDispatcher dispatcher, CancellationToken cancellationToken) =>
-            Results.Ok(await dispatcher.DispatchAsync<TResponse>(request, cancellationToken));
+        {
+            var result = await dispatcher.DispatchAsync<TResponse>(request, cancellationToken);
+            return result is null ? Results.NotFound() : Results.Ok(result);
+        };
 
     internal static Delegate StreamQuery<TRequest, TResponse>() where TRequest : notnull =>
         ([AsParameters] TRequest request, IStreamEndpointDispatcher dispatcher, CancellationToken cancellationToken) =>

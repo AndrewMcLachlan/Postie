@@ -76,3 +76,21 @@ public class StreamWidgetsHandler : IStreamQueryHandler<StreamWidgets, Widget>
         }
     }
 }
+
+// A query whose handler returns null for a missing widget (id 0).
+public record FindWidget(int Id) : IQuery<Widget>;
+
+public class FindWidgetHandler : IQueryHandler<FindWidget, Widget>
+{
+    public ValueTask<Widget> Handle(FindWidget query, CancellationToken cancellationToken) =>
+        new(query.Id == 0 ? null : new Widget(query.Id, "found"));
+}
+
+// A query with a value-type response (for OpenAPI metadata assertions).
+public record CountWidgets(int Seed) : IQuery<int>;
+
+public class CountWidgetsHandler : IQueryHandler<CountWidgets, int>
+{
+    public ValueTask<int> Handle(CountWidgets query, CancellationToken cancellationToken) =>
+        new(query.Seed);
+}

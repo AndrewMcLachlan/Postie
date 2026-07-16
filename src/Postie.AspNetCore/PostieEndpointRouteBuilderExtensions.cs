@@ -13,16 +13,28 @@ namespace Postie.AspNetCore;
 public static class PostieEndpointRouteBuilderExtensions
 {
     /// <summary>
-    /// Maps a GET request to a query. The query is bound from route, query and header values.
+    /// Maps a GET request to a query. The query is bound from route, query and header values. A null
+    /// result returns 404 Not Found; any other result returns 200 OK.
     /// </summary>
     /// <typeparam name="TRequest">The type of the query.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
     /// <param name="pattern">The route pattern.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern) where TRequest : notnull =>
-        endpoints.MapGet(pattern, EndpointHandlers.Query<TRequest, TResponse>())
-                 .Produces<TResponse>();
+    public static RouteHandlerBuilder MapQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern) where TRequest : notnull
+    {
+        var builder = endpoints.MapGet(pattern, EndpointHandlers.Query<TRequest, TResponse>())
+                               .Produces<TResponse>();
+
+        // A value-type response can never be null, so only reference-type queries can take the
+        // null-to-404 path and only they advertise it.
+        if (!typeof(TResponse).IsValueType)
+        {
+            builder.Produces(StatusCodes.Status404NotFound);
+        }
+
+        return builder;
+    }
 
     /// <summary>
     /// Maps a GET request to a streaming query, returning the results as an asynchronous stream. The query
