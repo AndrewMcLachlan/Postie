@@ -17,7 +17,7 @@ using Postie.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Registers Postie's command/query handlers AND the endpoint dispatcher in one call.
-builder.Services.AddPostie(typeof(GetOrder).Assembly);
+builder.Services.AddPostie<GetOrder>();
 
 var app = builder.Build();
 

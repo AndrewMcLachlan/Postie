@@ -23,14 +23,14 @@ using Postie.Cqrs.Queries;
 using Postie.Cqrs.Commands;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddPostie(typeof(GetOrder).Assembly);   // handlers + endpoint dispatcher
+builder.Services.AddPostie(typeof(GetOrder).Assembly);   // handlers + endpoint dispatcher (or AddPostie<GetOrder>())
 
 var app = builder.Build();
 
 var orders = app.MapGroup("/orders");
 orders.MapQuery<GetOrder, Order>("/{id}").WithName("GetOrder");
 orders.MapPostCreate<CreateOrder, Order>("/", "GetOrder", o => new { id = o.Id });
-orders.MapPutCommand<UpdateOrder, Order>("/{id}");
+orders.MapPutCommand<UpdateOrder, Order>("/{id}", binding: RequestBinding.Parameters);
 orders.MapDeleteCommand<DeleteOrder>("/{id}");
 
 app.Run();
@@ -58,6 +58,7 @@ No handler lambdas, no boilerplate between the route and your handler.
 | [`Postie.Cqrs.AspNetCore`](src/Postie.Cqrs.AspNetCore) | Adapter wiring the engine to Postie's own mediator |
 | [`Postie.AspNetCore.MediatR`](src/Postie.AspNetCore.MediatR) | Adapter for MediatR — keep your existing `IRequest` types |
 | [`Postie.Cqrs.FluentValidation`](src/Postie.Cqrs.FluentValidation) | FluentValidation pipeline behaviors |
+| [`Postie.AspNetCore.FluentValidation`](src/Postie.AspNetCore.FluentValidation) | Maps FluentValidation's `ValidationException` to a 400 problem-details response |
 
 ## Bring your own mediator
 
@@ -66,7 +67,7 @@ methods work with any mediator:
 
 **Postie's mediator** (`Postie.Cqrs.AspNetCore`):
 ```csharp
-builder.Services.AddPostie(typeof(GetOrder).Assembly);
+builder.Services.AddPostie(typeof(GetOrder).Assembly);   // or AddPostie<GetOrder>()
 ```
 
 **MediatR** (`Postie.AspNetCore.MediatR`) — keep your `IRequest` types:
@@ -89,7 +90,7 @@ builder.Services.AddTransient<IEndpointDispatcher, MyEndpointDispatcher>();
 
 | Method | Verb | Success | Default binding |
 |--------|------|---------|-----------------|
-| `MapQuery<TQuery, TResponse>` | GET | 200 | route/query |
+| `MapQuery<TQuery, TResponse>` | GET | 200 / 404 on null | route/query |
 | `MapCommand<TCommand, TResponse>` / `MapCommand<TCommand>` | POST | 200 / 204 | body |
 | `MapPutCommand<TCommand, TResponse>` / `MapPutCommand<TCommand>` | PUT | 200 / 204 | body |
 | `MapPatchCommand<TCommand, TResponse>` | PATCH | 200 | body |
@@ -99,6 +100,12 @@ builder.Services.AddTransient<IEndpointDispatcher, MyEndpointDispatcher>();
 
 Command methods take a `RequestBinding` (`Body`, `Parameters`, or `Default`) to override the default —
 use `Parameters` for hybrid endpoints that bind an id from the route and a payload from the body.
+Mapping a `Body`-bound command whose members carry `[FromRoute]`/`[FromQuery]`/`[FromHeader]`
+attributes fails at startup — those attributes only take effect with `Parameters` binding.
+
+Queries that return a reference type respond **404 Not Found** when the handler returns null, and
+advertise the 404 in their OpenAPI metadata. Collection queries should return empty collections, not
+null.
 
 Streaming queries (`IStreamQuery<TResponse>` returning `IAsyncEnumerable<TResponse>`) map with
 `MapStreamQuery` and stream their results as they are produced.
@@ -113,11 +120,20 @@ builder.Services.AddQueryPipelineBehavior(typeof(TimingBehavior<,>));
 ```
 
 For FluentValidation, [`Postie.Cqrs.FluentValidation`](src/Postie.Cqrs.FluentValidation) ships ready-made
-behaviors:
+behaviors, and [`Postie.AspNetCore.FluentValidation`](src/Postie.AspNetCore.FluentValidation) turns the
+resulting `ValidationException` into a 400 problem-details response:
 
 ```csharp
-builder.Services.AddPostieValidation(typeof(CreateOrder).Assembly);
+builder.Services.AddPostieValidation<CreateOrderValidator>();     // validate before the handler runs
+builder.Services.AddPostieValidationExceptionHandler();           // ValidationException -> 400
+// ...
+app.UseExceptionHandler();
+
+orders.MapCommand<CreateOrder, Order>("/").ProducesValidationProblem();   // advertise the 400 you now produce
 ```
+
+Postie's mappings only advertise responses Postie itself produces; anything conditional — like the 400
+above — is yours to chain on the returned builder.
 
 ## OpenTelemetry
 
@@ -132,15 +148,24 @@ Tracing costs nothing until you opt in — with no listener the dispatch takes a
 ## Error handling
 
 Postie's endpoint layer doesn't translate exceptions — handlers throw, and your exception handling maps
-them to responses. Pair with [Asm.AspNetCore](https://www.nuget.org/packages/Asm.AspNetCore), which maps
-common exception types (including FluentValidation's `ValidationException`) to RFC 9457 problem details, or
-register your own `IExceptionHandler`.
+them to responses. For FluentValidation failures,
+[`Postie.AspNetCore.FluentValidation`](src/Postie.AspNetCore.FluentValidation) maps
+`ValidationException` to an RFC 9457 400. For anything else, register your own `IExceptionHandler`
+(or pair with [Asm.AspNetCore](https://www.nuget.org/packages/Asm.AspNetCore), which maps common
+exception types to problem details).
 
 ## Why another one?
 
 The endpoint layer is the point. Most mediator libraries stop at dispatch; Postie's focus is the last mile
 between HTTP and your handlers, done REST-properly (201 + `Location` via named routes, 204 for no-content
 commands, verb-appropriate binding defaults) — and it works with whatever mediator you already use.
+
+## Native AOT and trimming
+
+Postie does not support Native AOT or trimming. The `Map*` methods compose their handler delegates at
+runtime, which bypasses ASP.NET Core's Request Delegate Generator, and the dispatcher uses
+`MakeGenericType` and compiled expressions. This is a deliberate v1 trade-off for the
+mediator-agnostic design; JIT-based deployments (the overwhelming default) are unaffected.
 
 ## Building
 

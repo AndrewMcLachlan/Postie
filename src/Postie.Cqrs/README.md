@@ -31,10 +31,12 @@ Command handlers implement `ICommandHandler<TCommand, TResponse>` or `ICommandHa
 ## Register
 
 ```csharp
-builder.Services.AddCqrs(typeof(GetOrder).Assembly);   // scans for command and query handlers
+builder.Services.AddCqrs<GetOrder>();                  // scans the marker type's assembly
+builder.Services.AddCqrs(typeof(GetOrder).Assembly);   // or pass assemblies explicitly
 ```
 
-Or register handlers individually with `AddQueryHandler<,,>` / `AddCommandHandler<,,>` / `AddCommandHandler<,>`.
+At least one assembly is required — there is no calling-assembly fallback. Or register handlers
+individually with `AddQueryHandler<,,>` / `AddCommandHandler<,,>` / `AddCommandHandler<,>`.
 
 ## Dispatch
 

@@ -24,8 +24,8 @@ public class CreateOrderValidator : AbstractValidator<CreateOrder>
 }
 
 // Program.cs
-builder.Services.AddCqrs(typeof(CreateOrder).Assembly);
-builder.Services.AddPostieValidation(typeof(CreateOrder).Assembly);   // scans validators + wires behaviors
+builder.Services.AddCqrs<CreateOrder>();
+builder.Services.AddPostieValidation<CreateOrder>();   // scans validators + wires behaviors
 ```
 
 Now dispatching a `CreateOrder` with an empty `Customer` throws `ValidationException` before the handler
@@ -34,8 +34,9 @@ runs. Both queries and commands (with or without a response) are validated.
 ## Turning failures into responses
 
 The behaviors throw; your exception handling turns that into an HTTP response. In an ASP.NET Core app,
-pair with [Asm.AspNetCore](https://www.nuget.org/packages/Asm.AspNetCore), whose handler maps
-`ValidationException` to an RFC 9457 `400` problem-details response, or register your own `IExceptionHandler`.
+pair with [Postie.AspNetCore.FluentValidation](https://www.nuget.org/packages/Postie.AspNetCore.FluentValidation),
+whose exception handler maps `ValidationException` to an RFC 9457 400 problem-details response — or
+register your own `IExceptionHandler`.
 
 ## License
 

@@ -35,7 +35,7 @@ Every method returns the `RouteHandlerBuilder`, so you can chain `.WithName(...)
 
 | Method | Verb | Success |
 |--------|------|---------|
-| `MapQuery<TQuery, TResponse>` | GET | 200 |
+| `MapQuery<TQuery, TResponse>` | GET | 200 / 404 on null |
 | `MapCommand<TCommand, TResponse>` / `MapCommand<TCommand>` | POST | 200 / 204 |
 | `MapPutCommand<TCommand, TResponse>` / `MapPutCommand<TCommand>` | PUT | 200 / 204 |
 | `MapPatchCommand<TCommand, TResponse>` | PATCH | 200 |
@@ -48,6 +48,12 @@ Pass a status code to override the default (e.g. `MapCommand<Submit, Receipt>("/
 `MapStreamQuery` maps a streaming query (returning `IAsyncEnumerable<TResponse>`) and requires an
 `IStreamEndpointDispatcher` — a separate, optional companion to `IEndpointDispatcher` that the Postie and
 MediatR adapters register automatically. A roll-your-own mediator only needs to implement it to map streams.
+
+## Not found
+
+Queries returning a reference type respond **404 Not Found** when the dispatched result is null, and
+advertise the 404 in OpenAPI metadata. Value-type queries can't be null and don't advertise it.
+Collection queries should return empty collections, not null.
 
 ## Request binding
 
@@ -63,12 +69,17 @@ public record UpdateOrder([FromRoute] int Id, [FromBody] OrderDetails Details) :
 orders.MapPutCommand<UpdateOrder, Order>("/{id}", binding: RequestBinding.Parameters);
 ```
 
+Mapping a `Body`-bound command whose members carry `[FromRoute]`/`[FromQuery]`/`[FromHeader]` fails at
+startup with a message naming the offending members — those attributes only take effect with
+`Parameters` binding.
+
 ## Errors
 
 This package does not translate exceptions — handlers throw, and your exception handling maps them to
-responses (the command methods already advertise `ProducesValidationProblem`). Pair it with
-[Asm.AspNetCore](https://www.nuget.org/packages/Asm.AspNetCore), whose handler maps common exception types
-(including FluentValidation's `ValidationException`) to RFC 9457 problem details, or register your own
+responses. Postie's mappings only advertise the responses they produce themselves; chain
+`.Produces(...)`/`.ProducesValidationProblem()` for responses your pipeline adds. For FluentValidation,
+[Postie.AspNetCore.FluentValidation](https://www.nuget.org/packages/Postie.AspNetCore.FluentValidation)
+maps `ValidationException` to an RFC 9457 400 problem-details response; or register your own
 `IExceptionHandler`.
 
 ## License
