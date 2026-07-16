@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>FluentValidation exception handling for ASP.NET Core — maps ValidationException to an RFC 9457 400 problem-details response. Pairs with Postie's endpoint mapping and validation behaviors.</Description>
+    <PackageTags>cqrs;minimal-api;aspnetcore;validation;fluentvalidation;problem-details</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.AspNetCore.Http" />
+  </ItemGroup>
+
+</Project>
