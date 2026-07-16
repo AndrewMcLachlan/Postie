@@ -334,3 +334,6 @@ ASALocalRun/
 
 # Agent worktrees
 .claude/worktrees/
+
+# Superpowers working documents (specs, plans)
+docs/superpowers/

@@ -8,7 +8,7 @@
     <!-- 12.x is the last Apache-2.0 line (13+ is commercially licensed). Pinning the floor here keeps
          Postie.AspNetCore.MediatR free by default; NuGet minimum-version semantics still let a consumer
          who references MediatR 13+ resolve to their licensed version. -->
-    <PackageVersion Include="MediatR" Version="12.4.1" />
+    <PackageVersion Include="MediatR" Version="12.5.0" />
     <PackageVersion Include="FluentValidation" Version="11.11.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
   </ItemGroup>
