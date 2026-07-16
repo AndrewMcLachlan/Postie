@@ -55,3 +55,12 @@ public class StreamWidgetsHandler : IStreamRequestHandler<StreamWidgets, Widget>
         }
     }
 }
+
+// A request whose handler returns null for a missing widget (id 0).
+public record FindWidget(int Id) : IRequest<Widget>;
+
+public class FindWidgetHandler : IRequestHandler<FindWidget, Widget>
+{
+    public Task<Widget> Handle(FindWidget request, CancellationToken cancellationToken) =>
+        Task.FromResult(request.Id == 0 ? null : new Widget(request.Id, "found"));
+}

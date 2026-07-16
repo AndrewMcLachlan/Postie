@@ -114,4 +114,20 @@ public class MediatREndpointMappingTests
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
+
+    /// <summary>
+    /// Given a MediatR request mapped with MapQuery whose handler returns null.
+    /// When the GET endpoint is called for a missing resource.
+    /// Then 404 Not Found is returned instead of 200 with a null body.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapQueryReturnsNotFoundWhenHandlerReturnsNull()
+    {
+        var client = await StartAsync(app => app.MapQuery<FindWidget, Widget>("/widgets/find/{id}"));
+
+        var response = await client.GetAsync("/widgets/find/0", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }
