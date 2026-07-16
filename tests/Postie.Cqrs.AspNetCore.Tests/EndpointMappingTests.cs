@@ -273,4 +273,20 @@ public class EndpointMappingTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(new Widget(3, "found"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
     }
+
+    /// <summary>
+    /// Given a query with a nullable value-type response whose handler returns null.
+    /// When the GET endpoint is called for a missing resource.
+    /// Then 404 Not Found is returned.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapQueryReturnsNotFoundWhenNullableValueTypeHandlerReturnsNull()
+    {
+        var client = await StartAsync(app => app.MapQuery<FindWidgetCount, int?>("/widgets/countof/{id}"));
+
+        var response = await client.GetAsync("/widgets/countof/0", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }

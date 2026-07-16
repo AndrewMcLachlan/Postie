@@ -69,8 +69,8 @@ public record UpdateOrder([FromRoute] int Id, [FromBody] OrderDetails Details) :
 orders.MapPutCommand<UpdateOrder, Order>("/{id}", binding: RequestBinding.Parameters);
 ```
 
-Mapping a `Body`-bound command whose members carry `[FromRoute]`/`[FromQuery]`/`[FromHeader]` fails at
-startup with a message naming the offending members — those attributes only take effect with
+Mapping a `Body`-bound command whose members carry `[FromRoute]`/`[FromQuery]`/`[FromHeader]`/`[FromForm]`
+fails at startup with a message naming the offending members — those attributes only take effect with
 `Parameters` binding.
 
 ## Errors

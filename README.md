@@ -18,6 +18,7 @@ dotnet add package Postie.Cqrs.AspNetCore
 ```
 
 ```csharp
+using Microsoft.AspNetCore.Mvc;
 using Postie.AspNetCore;
 using Postie.Cqrs.Queries;
 using Postie.Cqrs.Commands;
@@ -100,7 +101,7 @@ builder.Services.AddTransient<IEndpointDispatcher, MyEndpointDispatcher>();
 
 Command methods take a `RequestBinding` (`Body`, `Parameters`, or `Default`) to override the default —
 use `Parameters` for hybrid endpoints that bind an id from the route and a payload from the body.
-Mapping a `Body`-bound command whose members carry `[FromRoute]`/`[FromQuery]`/`[FromHeader]`
+Mapping a `Body`-bound command whose members carry `[FromRoute]`/`[FromQuery]`/`[FromHeader]`/`[FromForm]`
 attributes fails at startup — those attributes only take effect with `Parameters` binding.
 
 Queries that return a reference type respond **404 Not Found** when the handler returns null, and

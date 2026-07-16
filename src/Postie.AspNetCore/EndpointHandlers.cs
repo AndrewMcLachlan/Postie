@@ -98,12 +98,13 @@ internal static class EndpointHandlers
         if (offending.Count > 0)
         {
             throw new InvalidOperationException(
-                $"Command '{typeof(TRequest).Name}' is mapped with RequestBinding.Body, but member(s) {String.Join(", ", offending)} have [FromRoute]/[FromQuery]/[FromHeader] attributes that are ignored when the whole command binds from the body. Map the endpoint with RequestBinding.Parameters to bind members from different sources.");
+                $"Command '{typeof(TRequest).Name}' is mapped with RequestBinding.Body, but member(s) {String.Join(", ", offending)} have [FromRoute]/[FromQuery]/[FromHeader]/[FromForm] attributes that are ignored when the whole command binds from the body. Map the endpoint with RequestBinding.Parameters to bind members from different sources.");
         }
     }
 
     private static bool HasBindingSourceAttribute(ICustomAttributeProvider member) =>
         member.IsDefined(typeof(FromRouteAttribute), inherit: true) ||
         member.IsDefined(typeof(FromQueryAttribute), inherit: true) ||
-        member.IsDefined(typeof(FromHeaderAttribute), inherit: true);
+        member.IsDefined(typeof(FromHeaderAttribute), inherit: true) ||
+        member.IsDefined(typeof(FromFormAttribute), inherit: true);
 }

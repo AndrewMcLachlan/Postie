@@ -14,6 +14,8 @@ public enum RequestBinding
     /// <summary>
     /// No binding attribute is applied; the framework's default inference decides. For a complex type
     /// this is usually the request body, unless the type defines <c>BindAsync</c> or <c>TryParse</c>.
+    /// Member binding-source attributes (<c>[FromRoute]</c> and similar) are ignored when inference
+    /// binds the whole command from the body; use <see cref="Parameters"/> for hybrid binding.
     /// </summary>
     Default = 0,
 

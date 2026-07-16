@@ -26,9 +26,9 @@ public static class PostieEndpointRouteBuilderExtensions
         var builder = endpoints.MapGet(pattern, EndpointHandlers.Query<TRequest, TResponse>())
                                .Produces<TResponse>();
 
-        // A value-type response can never be null, so only reference-type queries can take the
-        // null-to-404 path and only they advertise it.
-        if (!typeof(TResponse).IsValueType)
+        // A non-nullable value type can never be null, so only reference-type and Nullable<T>
+        // queries can take the null-to-404 path and only they advertise it.
+        if (!typeof(TResponse).IsValueType || Nullable.GetUnderlyingType(typeof(TResponse)) is not null)
         {
             builder.Produces(StatusCodes.Status404NotFound);
         }

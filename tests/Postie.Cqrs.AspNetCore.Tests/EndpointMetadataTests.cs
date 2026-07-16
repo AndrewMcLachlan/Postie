@@ -49,6 +49,20 @@ public class EndpointMetadataTests
     }
 
     /// <summary>
+    /// Given a query with a nullable value-type response.
+    /// When it is mapped with MapQuery.
+    /// Then the endpoint advertises 404 (a nullable value type can take the null-to-404 path).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void MapQueryAdvertises404ForNullableValueTypeResponse()
+    {
+        var produces = ProducesFor(app => app.MapQuery<FindWidgetCount, int?>("/widgets/countof/{id}"));
+
+        Assert.Contains(produces, m => m.StatusCode == StatusCodes.Status404NotFound);
+    }
+
+    /// <summary>
     /// Given a command mapped with MapCommand.
     /// When its endpoint metadata is inspected.
     /// Then no 400 response is advertised — Postie never produces one itself; consumers who wire

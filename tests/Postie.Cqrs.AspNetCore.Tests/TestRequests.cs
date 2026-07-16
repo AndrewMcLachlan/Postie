@@ -95,6 +95,15 @@ public class CountWidgetsHandler : IQueryHandler<CountWidgets, int>
         new(query.Seed);
 }
 
+// A query with a nullable value-type response (null for id 0), for the 404 path and metadata.
+public record FindWidgetCount(int Id) : IQuery<int?>;
+
+public class FindWidgetCountHandler : IQueryHandler<FindWidgetCount, int?>
+{
+    public ValueTask<int?> Handle(FindWidgetCount query, CancellationToken cancellationToken) =>
+        new(query.Id == 0 ? null : query.Id);
+}
+
 // A create command whose handler transforms the name, so request- and response-derived route values
 // differ — proving the request-aware MapPutCreate overload really uses the request.
 public record RegisterWidget(string Name) : ICommand<Widget>;

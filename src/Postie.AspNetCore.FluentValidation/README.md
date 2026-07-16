@@ -44,6 +44,9 @@ An invalid `CreateOrder` now returns:
 }
 ```
 
+The handler writes the response directly via `Results.ValidationProblem`, so `CustomizeProblemDetails`
+hooks configured on `AddProblemDetails` do not run for these 400s.
+
 Only `ValidationException` is handled; other exceptions flow to the rest of your exception-handling
 pipeline unchanged.
 
