@@ -1,27 +1,125 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- Postie social preview (GitHub Settings -> General -> Social preview; 1280x640).
      Source of truth for social-preview.png — re-export after any change.
      Text uses the Outfit typeface (https://fonts.google.com/specimen/Outfit, SIL OFL):
      wordmark = Outfit Bold (700), taglines = Outfit Medium (500). Install locally before editing. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
 
+<svg
+   width="1280"
+   height="640"
+   viewBox="0 0 1280 640"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="social-preview.svg"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.4425781"
+     inkscape:cx="481.42973"
+     inkscape:cy="213.16003"
+     inkscape:window-width="3840"
+     inkscape:window-height="2071"
+     inkscape:window-x="3831"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg4" />
   <!-- Ground -->
-  <rect id="background" width="1280" height="640" fill="#FAF6F2"/>
-
+  <rect
+     id="background"
+     width="1280"
+     height="640"
+     fill="#FAF6F2" />
   <!-- Icon tile (geometry = icon.svg scaled 128 -> 300) -->
-  <g id="icon-tile">
-    <rect x="130" y="170" width="300" height="300" rx="65.6" fill="#FF5800"/>
-    <circle cx="242.5" cy="320" r="58.6" fill="none" stroke="#FFFFFF" stroke-width="21.1"/>
-    <circle cx="242.5" cy="320" r="16.4" fill="#FFFFFF"/>
-    <line x1="326.9" y1="284.9" x2="378.4" y2="284.9" stroke="#FFFFFF" stroke-width="21.1" stroke-linecap="round"/>
-    <line x1="326.9" y1="320"   x2="392.5" y2="320"   stroke="#FFFFFF" stroke-width="21.1" stroke-linecap="round"/>
-    <line x1="326.9" y1="355.1" x2="364.4" y2="355.1" stroke="#FFFFFF" stroke-width="21.1" stroke-linecap="round"/>
+  <g
+     id="icon-tile">
+    <rect
+       x="130"
+       y="170"
+       width="300"
+       height="300"
+       rx="65.6"
+       fill="#FF5800"
+       id="rect1" />
+    <circle
+       cx="242.5"
+       cy="320"
+       r="58.6"
+       fill="none"
+       stroke="#FFFFFF"
+       stroke-width="21.1"
+       id="circle1" />
+    <circle
+       cx="242.5"
+       cy="320"
+       r="16.4"
+       fill="#FFFFFF"
+       id="circle2" />
+    <line
+       x1="326.9"
+       y1="284.9"
+       x2="378.4"
+       y2="284.9"
+       stroke="#FFFFFF"
+       stroke-width="21.1"
+       stroke-linecap="round"
+       id="line2" />
+    <line
+       x1="326.9"
+       y1="320"
+       x2="392.5"
+       y2="320"
+       stroke="#FFFFFF"
+       stroke-width="21.1"
+       stroke-linecap="round"
+       id="line3" />
+    <line
+       x1="326.9"
+       y1="355.1"
+       x2="364.4"
+       y2="355.1"
+       stroke="#FFFFFF"
+       stroke-width="21.1"
+       stroke-linecap="round"
+       id="line4" />
   </g>
-
   <!-- Wordmark + taglines -->
-  <g id="text" font-family="Outfit">
-    <text id="wordmark" x="510" y="290" font-size="120" font-weight="700" fill="#2B2119">Postie</text>
-    <text id="tagline-1" x="514" y="390" font-size="33" font-weight="500" fill="#2B2119">CQRS, delivered straight to minimal API endpoints.</text>
-    <text id="tagline-2" x="514" y="438" font-size="33" font-weight="500" fill="#7A6C62">Bring your own mediator. MIT, free forever.</text>
+  <g
+     id="text"
+     font-family="Outfit"
+     transform="translate(0,-4.205)">
+    <text
+       id="wordmark"
+       x="510"
+       y="290"
+       font-size="120px"
+       font-weight="700"
+       fill="#2b2119">Postie</text>
+    <text
+       id="tagline-1"
+       x="514"
+       y="390"
+       font-size="33px"
+       font-weight="500"
+       fill="#2b2119">CQRS, delivered straight to minimal API endpoints.</text>
+    <text
+       id="tagline-2"
+       x="514"
+       y="438"
+       font-size="33px"
+       font-weight="500"
+       fill="#7a6c62">Bring your own mediator. MIT, free forever.</text>
   </g>
 </svg>
