@@ -1,0 +1,31 @@
+name: Feature request
+description: Propose an addition or change to a Postie package.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation where Postie currently gets in your way, rather than the solution first.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: What would the call site look like? Sketch the mapping/registration code you wish you could write.
+      render: csharp
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: >
+        Including "chain it on the returned RouteHandlerBuilder" — Postie deliberately keeps its
+        surface small and advertises only what it produces, so conventions you can already compose
+        yourself may be declined as built-ins.
+  - type: checkboxes
+    id: pr
+    attributes:
+      label: Contribution
+      options:
+        - label: I'm willing to send a PR for this

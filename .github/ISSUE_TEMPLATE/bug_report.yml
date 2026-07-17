@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in a Postie package doesn't behave as documented.
+labels: ["bug"]
+body:
+  - type: checkboxes
+    id: packages
+    attributes:
+      label: Affected package(s)
+      options:
+        - label: Postie.Cqrs
+        - label: Postie.AspNetCore
+        - label: Postie.Cqrs.AspNetCore
+        - label: Postie.AspNetCore.MediatR
+        - label: Postie.Cqrs.FluentValidation
+        - label: Postie.AspNetCore.FluentValidation
+        - label: Not sure
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      placeholder: e.g. 1.0.0, or a 1.0.0-ci.N prerelease
+    validations:
+      required: true
+  - type: dropdown
+    id: tfm
+    attributes:
+      label: Target framework
+      options:
+        - net8.0
+        - net9.0
+        - net10.0
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include the HTTP status/response you got vs. the one you expected, if this is an endpoint-mapping issue.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: >
+        The smallest Program.cs + request/handler types that show the problem — the
+        [samples](../tree/main/samples) are a good starting skeleton to trim down.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or exception details
+      description: Stack trace, console output, or problem-details body, if any.
+      render: text

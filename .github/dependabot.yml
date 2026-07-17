@@ -14,6 +14,10 @@ updates:
           - "xunit*"
           - "coverlet*"
           - "*.Test.Sdk"
+    ignore:
+      # 12.x is the last Apache-2.0 MediatR line; 13+ is commercially licensed. Never auto-bump the major.
+      - dependency-name: "MediatR"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
