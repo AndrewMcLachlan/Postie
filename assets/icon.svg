@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Postie package icon: a postmark — cancellation ring with an endpoint hub and cancellation bars.
+     Source of truth for icon.png (128x128); re-export after any change. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#C4402E"/>
+  <circle cx="48" cy="64" r="25" fill="none" stroke="#FFFFFF" stroke-width="9"/>
+  <circle cx="48" cy="64" r="7" fill="#FFFFFF"/>
+  <line x1="84" y1="49" x2="106" y2="49" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>
+  <line x1="84" y1="64" x2="112" y2="64" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>
+  <line x1="84" y1="79" x2="100" y2="79" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>
+</svg>
