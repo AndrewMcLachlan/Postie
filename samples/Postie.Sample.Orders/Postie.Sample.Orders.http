@@ -1,0 +1,25 @@
+@host = http://localhost:5199
+
+### List all orders (200, seeded data)
+GET {{host}}/orders
+
+### Get one order (200)
+GET {{host}}/orders/1
+
+### Missing order (404)
+GET {{host}}/orders/999
+
+### Create an order (201 + Location header)
+POST {{host}}/orders
+Content-Type: application/json
+
+{ "customer": "New Customer", "total": 42.50 }
+
+### Update: id from the route, payload from the body (200)
+PUT {{host}}/orders/1
+Content-Type: application/json
+
+{ "customer": "Renamed Customer", "total": 99.99 }
+
+### Delete (204)
+DELETE {{host}}/orders/2
