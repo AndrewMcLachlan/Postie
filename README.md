@@ -184,6 +184,17 @@ dotnet test Postie.slnx
 
 Targets `net8.0`, `net9.0` and `net10.0`.
 
+## AI policy
+
+Postie is developed with substantial help from AI coding tools — much of the code, tests and
+documentation started life AI-generated. It is not, however, AI-published: every change is reviewed
+by the human maintainer before it ships, the full test suite runs across all supported frameworks on
+every push, and the decisions that matter — the public surface, the conventions, the breaking
+changes — are made by a person who answers for them.
+
+Contributions are welcome on the same terms: use whatever tools you like, but you are the author.
+Understand your change, test it, and be ready to discuss it in review.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

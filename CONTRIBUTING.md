@@ -56,6 +56,12 @@ CI publishes `-ci.N` prerelease packages to GitHub Packages from `main`. Release
 manual, via the Release workflow. You don't need to touch versioning in a PR — `Version` in
 `Directory.Build.props` is maintained deliberately.
 
+## AI-assisted contributions
+
+Use whatever tools you like — this project does, openly (see the [AI policy](README.md#ai-policy)).
+But you are the author of your PR: understand your change, test it yourself, and be ready to
+discuss it in review. "The AI wrote it" is not an answer to review feedback.
+
 ## License
 
 Postie is MIT licensed and free forever. By contributing, you agree that your contributions are
