@@ -61,6 +61,13 @@ No handler lambdas, no boilerplate between the route and your handler.
 | [`Postie.Cqrs.FluentValidation`](src/Postie.Cqrs.FluentValidation) | FluentValidation pipeline behaviors |
 | [`Postie.AspNetCore.FluentValidation`](src/Postie.AspNetCore.FluentValidation) | Maps FluentValidation's `ValidationException` to a 400 problem-details response |
 
+## Samples
+
+| Sample | Shows |
+|--------|-------|
+| [`Postie.Sample.Orders`](samples/Postie.Sample.Orders) | The endpoint conventions on Postie's built-in mediator, plus OpenTelemetry tracing |
+| [`Postie.Sample.Orders.MediatR`](samples/Postie.Sample.Orders.MediatR) | The same API on MediatR, with FluentValidation (400 problem details), OpenAPI + Scalar UI, and a streaming endpoint |
+
 ## Bring your own mediator
 
 The endpoint engine dispatches through one small abstraction, `IEndpointDispatcher`, so the same `Map*`
