@@ -22,6 +22,7 @@
   <Folder Name="/samples/">
     <File Path="samples/Directory.Build.props" />
     <Project Path="samples/Postie.Sample.Orders/Postie.Sample.Orders.csproj" />
+    <Project Path="samples/Postie.Sample.Orders.MediatR/Postie.Sample.Orders.MediatR.csproj" />
   </Folder>
   <Folder Name="/src/">
     <File Path="src/Directory.Build.props" />

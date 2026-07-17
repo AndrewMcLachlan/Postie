@@ -1,0 +1,34 @@
+@host = http://localhost:5299
+
+### List all orders (200, seeded data)
+GET {{host}}/orders
+
+### Stream orders (200, one item every 500 ms)
+GET {{host}}/orders/stream
+
+### Get one order (200)
+GET {{host}}/orders/1
+
+### Missing order (404)
+GET {{host}}/orders/999
+
+### Create an order (201 + Location header)
+POST {{host}}/orders
+Content-Type: application/json
+
+{ "customer": "New Customer", "total": 42.50 }
+
+### Invalid create (400 validation problem details)
+POST {{host}}/orders
+Content-Type: application/json
+
+{ "customer": "", "total": 0 }
+
+### Update: id from the route, payload from the body (200)
+PUT {{host}}/orders/1
+Content-Type: application/json
+
+{ "customer": "Renamed Customer", "total": 99.99 }
+
+### Delete (204)
+DELETE {{host}}/orders/2
