@@ -6,6 +6,9 @@
     <TargetFrameworks></TargetFrameworks>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- Samples only: lets the central Microsoft.OpenApi pin override the vulnerable transitive
+         (GHSA-v5pm-xwqc-g5wc) without affecting the shipped packages' dependency lists. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
 </Project>

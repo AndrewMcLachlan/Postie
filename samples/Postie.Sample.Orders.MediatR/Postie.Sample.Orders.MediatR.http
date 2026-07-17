@@ -24,6 +24,12 @@ Content-Type: application/json
 
 { "customer": "", "total": 0 }
 
+### Invalid update (400 — note the nested Details.* error keys)
+PUT {{host}}/orders/1
+Content-Type: application/json
+
+{ "customer": "", "total": 0 }
+
 ### Update: id from the route, payload from the body (200)
 PUT {{host}}/orders/1
 Content-Type: application/json

@@ -25,3 +25,4 @@ Then use [Postie.Sample.Orders.MediatR.http](Postie.Sample.Orders.MediatR.http) 
 `http://localhost:5299`, or explore interactively at `http://localhost:5299/scalar`.
 
 Storage is in-memory and seeded with three orders.
+Non-validation exceptions still surface as 500 problem-details responses.
