@@ -59,8 +59,10 @@ manual, via the Release workflow. You don't need to touch versioning in a PR —
 ## AI-assisted contributions
 
 Use whatever tools you like — this project does, openly (see the [AI policy](README.md#ai-policy)).
-But you are the author of your PR: understand your change, test it yourself, and be ready to
-discuss it in review. "The AI wrote it" is not an answer to review feedback.
+AI-written code is accepted: the bar is human review, not human authorship. If a model wrote your
+change, review it yourself before submitting — read every line, run the tests, and stand behind it
+as your own; it will then be judged exactly like any other contribution. But you are the author of
+your PR, and "the AI wrote it" is not an answer to review feedback.
 
 ## License
 

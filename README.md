@@ -196,6 +196,12 @@ public surface, the conventions, the breaking changes — are made by a person w
 Contributions are welcome on the same terms: use whatever tools you like, but you are the author.
 Understand your change, test it, and be ready to discuss it in review.
 
+AI-written code is accepted here — the bar is human review, not human authorship. If a model wrote
+your change, review it yourself before submitting: read every line, run the tests, and stand behind
+it as your own. It will then be judged exactly like any other contribution. What isn't accepted is
+unreviewed generation — a pull request nobody has read has no author, and every change to Postie
+has one.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
