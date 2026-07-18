@@ -12,31 +12,24 @@ on:
 permissions:
   contents: read
 
-env:
-  NUGET_SOURCE: https://nuget.pkg.github.com/AndrewMcLachlan/index.json
-
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      packages: write
       contents: read
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
     - name: Setup .NET
-      uses: actions/setup-dotnet@v6
-      env:
-        NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
       with:
         dotnet-version: |
           8.x
           9.x
           10.x
-        source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
 
     - name: Get version info
       id: get-version-number
-      uses: AndrewMcLachlan/Actions/get-version-number-from-project@v4
+      uses: AndrewMcLachlan/Actions/get-version-number-from-project@d3e53c04be8287ab0c19ec485b0741a7d166ea31 # v4
       with:
         project: Directory.Build.props
 
@@ -51,11 +44,59 @@ jobs:
       run: dotnet build Postie.slnx --no-restore --configuration Release --p:Version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}.0 --p:FileVersion=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}.${{ github.run_number }} --p:InformationalVersion=${{ steps.set-version.outputs.package-version }}
 
     - name: Test
-      run: dotnet test Postie.slnx --no-build --configuration Release --verbosity normal
+      run: dotnet test Postie.slnx --no-build --configuration Release --collect "XPlat Code Coverage" --settings coverage.runsettings --results-directory ${{ github.workspace }}/coverage
 
+    - name: Upload coverage
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      with:
+        name: coverage
+        path: ${{ github.workspace }}/coverage
+        retention-days: 30
+
+    # Packs only the six published src/ libraries. Packing the whole solution (as before) also
+    # tries to pack the samples/ projects, which are apps, not NuGet packages, and produces pack
+    # warnings for them on every build.
     - name: Package
-      run: dotnet pack Postie.slnx --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}.0 --p:PackageVersion=${{ steps.set-version.outputs.package-version }}
+      run: |
+        set -e
+        projects=(
+          "src/Postie.AspNetCore/Postie.AspNetCore.csproj"
+          "src/Postie.AspNetCore.FluentValidation/Postie.AspNetCore.FluentValidation.csproj"
+          "src/Postie.AspNetCore.MediatR/Postie.AspNetCore.MediatR.csproj"
+          "src/Postie.Cqrs/Postie.Cqrs.csproj"
+          "src/Postie.Cqrs.AspNetCore/Postie.Cqrs.AspNetCore.csproj"
+          "src/Postie.Cqrs.FluentValidation/Postie.Cqrs.FluentValidation.csproj"
+        )
+        for project in "${projects[@]}"; do
+          dotnet pack "$project" --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}.0 --p:PackageVersion=${{ steps.set-version.outputs.package-version }}
+        done
 
+    - name: Upload packages
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      with:
+        name: packages
+        path: ${{ github.workspace }}/publish/*
+        retention-days: 30
+
+  publish-github-packages:
+    needs: build
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+    - name: Download packages
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      with:
+        name: packages
+        path: ${{ github.workspace }}/publish
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+      with:
+        dotnet-version: 10.x
+
+    # No rebuild here: this publishes exactly the artifacts validated by the build job above.
     - name: Publish Packages
-      if: ((github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main')
-      run: dotnet nuget push ${{ github.workspace }}/publish/**/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source ${{ env.NUGET_SOURCE }} --skip-duplicate
+      run: dotnet nuget push ${{ github.workspace }}/publish/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate

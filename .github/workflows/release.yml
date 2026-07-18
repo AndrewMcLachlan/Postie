@@ -1,7 +1,8 @@
 name: Release
 
-# Publishes to nuget.org. Triggered manually so releases to the public feed are always deliberate.
-# The version comes from Directory.Build.props; a prerelease run appends -beta.<run_number>.
+# Publishes to nuget.org via NuGet Trusted Publishing (OIDC, no long-lived API key stored in this
+# repo). Triggered manually so releases to the public feed are always deliberate. The version
+# comes from Directory.Build.props; a prerelease run appends -beta.<run_number>.
 on:
   workflow_dispatch:
     inputs:
@@ -14,25 +15,27 @@ permissions:
   contents: read
 
 jobs:
-  release:
+  validate:
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: read
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      with:
+        fetch-depth: 0
+
     - name: Setup .NET
-      uses: actions/setup-dotnet@v6
-      env:
-        NUGET_AUTH_TOKEN: ${{ secrets.NUGET_API_KEY }}
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
       with:
         dotnet-version: |
           8.x
           9.x
           10.x
-        source-url: https://api.nuget.org/v3/index.json
 
     - name: Get version info
       id: get-version-number
-      uses: AndrewMcLachlan/Actions/get-version-number-from-project@v4
+      uses: AndrewMcLachlan/Actions/get-version-number-from-project@d3e53c04be8287ab0c19ec485b0741a7d166ea31 # v4
       with:
         project: Directory.Build.props
 
@@ -45,6 +48,19 @@ jobs:
           echo "package-version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}" >> $GITHUB_OUTPUT
         fi
 
+    # Stable releases must be built from the exact version tag. The tag is created and protected
+    # by the maintainer - agents never tag. This anchors a stable publish to a specific, reviewed
+    # commit instead of whatever main happens to be at dispatch time.
+    - name: Verify release tag (stable only)
+      if: ${{ inputs.isprerelease == 'false' }}
+      run: |
+        TAG="v${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}"
+        ACTUAL=$(git describe --exact-match --tags HEAD 2>/dev/null || true)
+        if [ "$ACTUAL" != "$TAG" ]; then
+          echo "::error::Stable releases must run from the exact version tag $TAG (HEAD is '$ACTUAL')."
+          exit 1
+        fi
+
     - name: Restore
       run: dotnet restore Postie.slnx
 
@@ -54,8 +70,65 @@ jobs:
     - name: Test
       run: dotnet test Postie.slnx --no-build --configuration Release
 
+    # Packs only the six published src/ libraries (not the samples/ apps). Package validation
+    # from EnablePackageValidation runs as part of this pack step.
     - name: Package
-      run: dotnet pack Postie.slnx --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}.0 --p:PackageVersion=${{ steps.set-version.outputs.package-version }}
+      run: |
+        set -e
+        projects=(
+          "src/Postie.AspNetCore/Postie.AspNetCore.csproj"
+          "src/Postie.AspNetCore.FluentValidation/Postie.AspNetCore.FluentValidation.csproj"
+          "src/Postie.AspNetCore.MediatR/Postie.AspNetCore.MediatR.csproj"
+          "src/Postie.Cqrs/Postie.Cqrs.csproj"
+          "src/Postie.Cqrs.AspNetCore/Postie.Cqrs.AspNetCore.csproj"
+          "src/Postie.Cqrs.FluentValidation/Postie.Cqrs.FluentValidation.csproj"
+        )
+        for project in "${projects[@]}"; do
+          dotnet pack "$project" --no-restore --no-build -o ${{ github.workspace }}/publish --configuration Release --p:Version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}.0 --p:PackageVersion=${{ steps.set-version.outputs.package-version }}
+        done
 
+    - name: Upload packages
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      with:
+        name: packages
+        path: |
+          ${{ github.workspace }}/publish/*.nupkg
+          ${{ github.workspace }}/publish/*.snupkg
+        retention-days: 90
+
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    # Protected environment - created and gated by the maintainer. Publishing waits for that
+    # manual approval before the trusted-publishing OIDC exchange happens.
+    environment: nuget
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+    - name: Download packages
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      with:
+        name: packages
+        path: ${{ github.workspace }}/publish
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+      with:
+        dotnet-version: 10.x
+
+    # NuGet Trusted Publishing: exchanges this job's GitHub OIDC token (permissions.id-token:
+    # write, above) for a short-lived (1 hour) nuget.org API key. Requires a Trusted Publishing
+    # policy configured on nuget.org for this repo/workflow (scoped to the "nuget" environment),
+    # and a NUGET_USER repository variable set to the nuget.org account/profile name to publish
+    # as. See https://learn.microsoft.com/nuget/nuget-org/trusted-publishing
+    - name: NuGet login (OIDC -> temp API key)
+      id: login
+      uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
+      with:
+        user: ${{ vars.NUGET_USER }}
+
+    # --skip-duplicate: retries re-publish the identical validated artifacts from this run's
+    # upload, so skipping already-pushed IDs is safe and enables partial-failure retry.
     - name: Publish to NuGet.org
-      run: dotnet nuget push ${{ github.workspace }}/publish/**/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push ${{ github.workspace }}/publish/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
