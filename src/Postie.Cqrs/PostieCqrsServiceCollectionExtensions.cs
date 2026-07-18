@@ -247,6 +247,10 @@ public static class PostieCqrsServiceCollectionExtensions
     /// that applies to every query, or a closed <see cref="IQueryPipelineBehavior{TQuery, TResponse}"/>.
     /// </param>
     /// <returns>The same service collection so that multiple calls can be chained.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="behaviorType"/> is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="behaviorType"/> does not implement <see cref="IQueryPipelineBehavior{TQuery, TResponse}"/>.
+    /// </exception>
     public static IServiceCollection AddQueryPipelineBehavior(this IServiceCollection services, Type behaviorType)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -255,9 +259,18 @@ public static class PostieCqrsServiceCollectionExtensions
         // Multiple behaviors are expected, so register with Add rather than TryAdd; the dispatcher runs
         // every registered behavior in order. An open generic registers against the open interface (so it
         // applies to every query); a closed behavior registers against the closed interface it implements.
-        var serviceType = behaviorType.IsGenericTypeDefinition
-            ? typeof(IQueryPipelineBehavior<,>)
-            : ClosedBehaviorInterface(behaviorType, typeof(IQueryPipelineBehavior<,>));
+        Type serviceType;
+        if (behaviorType.IsGenericTypeDefinition)
+        {
+            // MatchingBehaviorInterface also validates: an open generic that does not implement the
+            // interface would otherwise register successfully here and fail only when MS.DI resolves it.
+            MatchingBehaviorInterface(behaviorType, typeof(IQueryPipelineBehavior<,>));
+            serviceType = typeof(IQueryPipelineBehavior<,>);
+        }
+        else
+        {
+            serviceType = MatchingBehaviorInterface(behaviorType, typeof(IQueryPipelineBehavior<,>));
+        }
 
         services.AddTransient(serviceType, behaviorType);
 
@@ -273,14 +286,25 @@ public static class PostieCqrsServiceCollectionExtensions
     /// that applies to every stream query, or a closed <see cref="IStreamQueryPipelineBehavior{TQuery, TResponse}"/>.
     /// </param>
     /// <returns>The same service collection so that multiple calls can be chained.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="behaviorType"/> is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="behaviorType"/> does not implement <see cref="IStreamQueryPipelineBehavior{TQuery, TResponse}"/>.
+    /// </exception>
     public static IServiceCollection AddStreamQueryPipelineBehavior(this IServiceCollection services, Type behaviorType)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(behaviorType);
 
-        var serviceType = behaviorType.IsGenericTypeDefinition
-            ? typeof(IStreamQueryPipelineBehavior<,>)
-            : ClosedBehaviorInterface(behaviorType, typeof(IStreamQueryPipelineBehavior<,>));
+        Type serviceType;
+        if (behaviorType.IsGenericTypeDefinition)
+        {
+            MatchingBehaviorInterface(behaviorType, typeof(IStreamQueryPipelineBehavior<,>));
+            serviceType = typeof(IStreamQueryPipelineBehavior<,>);
+        }
+        else
+        {
+            serviceType = MatchingBehaviorInterface(behaviorType, typeof(IStreamQueryPipelineBehavior<,>));
+        }
 
         services.AddTransient(serviceType, behaviorType);
 
@@ -298,6 +322,11 @@ public static class PostieCqrsServiceCollectionExtensions
     /// or <c>typeof(AuditBehavior&lt;&gt;)</c>) that applies to every command.
     /// </param>
     /// <returns>The same service collection so that multiple calls can be chained.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="behaviorType"/> is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="behaviorType"/> does not implement the pipeline behavior interface matching its arity
+    /// (<see cref="ICommandPipelineBehavior{TCommand}"/> or <see cref="ICommandPipelineBehavior{TCommand, TResponse}"/>).
+    /// </exception>
     public static IServiceCollection AddCommandPipelineBehavior(this IServiceCollection services, Type behaviorType)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -311,10 +340,15 @@ public static class PostieCqrsServiceCollectionExtensions
             serviceType = behaviorType.GetGenericArguments().Length == 1
                 ? typeof(ICommandPipelineBehavior<>)
                 : typeof(ICommandPipelineBehavior<,>);
+
+            // Validates against the interface the arity already picked, mirroring the query/stream-query
+            // behavior checks: an open generic that does not implement it would otherwise fail only when
+            // MS.DI resolves it.
+            MatchingBehaviorInterface(behaviorType, serviceType);
         }
         else
         {
-            serviceType = ClosedBehaviorInterface(behaviorType, typeof(ICommandPipelineBehavior<,>), typeof(ICommandPipelineBehavior<>));
+            serviceType = MatchingBehaviorInterface(behaviorType, typeof(ICommandPipelineBehavior<,>), typeof(ICommandPipelineBehavior<>));
         }
 
         services.AddTransient(serviceType, behaviorType);
@@ -322,9 +356,13 @@ public static class PostieCqrsServiceCollectionExtensions
         return services;
     }
 
-    // Finds the closed pipeline-behavior interface a (non-generic-definition) behavior implements, so a
-    // closed behavior is registered against that closed service type rather than the open definition.
-    private static Type ClosedBehaviorInterface(Type behaviorType, params Type[] openDefinitions)
+    // Finds the pipeline-behavior interface behaviorType implements matching one of the given open
+    // definitions. For a closed behavior this returns the closed interface it should be registered
+    // against. For an open generic definition, GetInterfaces() still returns interfaces parameterised by
+    // the type's own generic parameters, whose GetGenericTypeDefinition() matches the same open
+    // definitions — so this doubles as a registration-time check that the open generic actually
+    // implements the interface, rather than failing only when MS.DI resolves it.
+    private static Type MatchingBehaviorInterface(Type behaviorType, params Type[] openDefinitions)
     {
         foreach (var i in behaviorType.GetInterfaces())
         {

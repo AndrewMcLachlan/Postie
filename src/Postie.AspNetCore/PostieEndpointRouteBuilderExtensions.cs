@@ -21,8 +21,12 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
     /// <param name="pattern">The route pattern.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
     public static RouteHandlerBuilder MapQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern) where TRequest : notnull
     {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+
         var builder = endpoints.MapGet(pattern, EndpointHandlers.Query<TRequest, TResponse>())
                                .Produces<TResponse>();
 
@@ -49,9 +53,15 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
     /// <param name="pattern">The route pattern.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapStreamQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern) where TRequest : notnull =>
-        endpoints.MapGet(pattern, EndpointHandlers.StreamQuery<TRequest, TResponse>())
-                 .Produces<IEnumerable<TResponse>>();
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
+    public static RouteHandlerBuilder MapStreamQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+
+        return endpoints.MapGet(pattern, EndpointHandlers.StreamQuery<TRequest, TResponse>())
+                         .Produces<IEnumerable<TResponse>>();
+    }
 
     /// <summary>
     /// Maps a POST request to a command and returns its response.
@@ -63,9 +73,17 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="statusCode">The success status code for the response body. Defaults to 200 OK.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPost(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
-                 .Produces<TResponse>(statusCode);
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Body) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+        ValidateBinding(binding);
+
+        return endpoints.MapPost(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
+                         .Produces<TResponse>(statusCode);
+    }
 
     /// <summary>
     /// Maps a POST request to a command that returns no body, responding with <paramref name="statusCode"/>
@@ -77,9 +95,17 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="statusCode">The status code to return. Defaults to 204 No Content.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapCommand<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status204NoContent, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPost(pattern, EndpointHandlers.VoidCommand<TRequest>(statusCode, binding))
-                 .Produces(statusCode);
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapCommand<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status204NoContent, RequestBinding binding = RequestBinding.Body) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+        ValidateBinding(binding);
+
+        return endpoints.MapPost(pattern, EndpointHandlers.VoidCommand<TRequest>(statusCode, binding))
+                         .Produces(statusCode);
+    }
 
     /// <summary>
     /// Maps a PUT request to a command and returns its response.
@@ -91,9 +117,17 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="statusCode">The success status code for the response body. Defaults to 200 OK.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapPutCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPut(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
-                 .Produces<TResponse>(statusCode);
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapPutCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Body) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+        ValidateBinding(binding);
+
+        return endpoints.MapPut(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
+                         .Produces<TResponse>(statusCode);
+    }
 
     /// <summary>
     /// Maps a PUT request to a command that returns no body, responding with <paramref name="statusCode"/>
@@ -105,9 +139,17 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="statusCode">The status code to return. Defaults to 204 No Content.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapPutCommand<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status204NoContent, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPut(pattern, EndpointHandlers.VoidCommand<TRequest>(statusCode, binding))
-                 .Produces(statusCode);
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapPutCommand<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status204NoContent, RequestBinding binding = RequestBinding.Body) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+        ValidateBinding(binding);
+
+        return endpoints.MapPut(pattern, EndpointHandlers.VoidCommand<TRequest>(statusCode, binding))
+                         .Produces(statusCode);
+    }
 
     /// <summary>
     /// Maps a PATCH request to a command and returns its response.
@@ -119,9 +161,17 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="statusCode">The success status code for the response body. Defaults to 200 OK.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapPatchCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPatch(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
-                 .Produces<TResponse>(statusCode);
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapPatchCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Body) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+        ValidateBinding(binding);
+
+        return endpoints.MapPatch(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
+                         .Produces<TResponse>(statusCode);
+    }
 
     /// <summary>
     /// Maps a POST request to a command that creates a resource, returning 201 Created with a
@@ -135,8 +185,20 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="getRouteValues">Builds the route values for the <c>Location</c> header from the response.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapPostCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPostCreate<TRequest, TResponse>(pattern, routeName, (_, response) => getRouteValues(response), binding);
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="getRouteValues"/> is null, or (via the target overload) <paramref name="endpoints"/>,
+    /// <paramref name="pattern"/>, or <paramref name="routeName"/> is null.
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="routeName"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapPostCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull
+    {
+        // getRouteValues is wrapped in a lambda before delegating, so a null check on the target overload
+        // would never see the null — it would only surface once the wrapper runs, per request.
+        ArgumentNullException.ThrowIfNull(getRouteValues);
+
+        return endpoints.MapPostCreate<TRequest, TResponse>(pattern, routeName, (_, response) => getRouteValues(response), binding);
+    }
 
     /// <summary>
     /// Maps a POST request to a command that creates a resource, returning 201 Created with a
@@ -150,9 +212,23 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="getRouteValues">Builds the route values for the <c>Location</c> header from the command and the response.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapPostCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TRequest, TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPost(pattern, EndpointHandlers.Create<TRequest, TResponse>(routeName, getRouteValues, binding))
-                 .Produces<TResponse>(StatusCodes.Status201Created);
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="endpoints"/>, <paramref name="pattern"/>, <paramref name="routeName"/>, or
+    /// <paramref name="getRouteValues"/> is null.
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="routeName"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapPostCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TRequest, TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+        ArgumentException.ThrowIfNullOrEmpty(routeName);
+        ArgumentNullException.ThrowIfNull(getRouteValues);
+        ValidateBinding(binding);
+
+        return endpoints.MapPost(pattern, EndpointHandlers.Create<TRequest, TResponse>(routeName, getRouteValues, binding))
+                         .Produces<TResponse>(StatusCodes.Status201Created);
+    }
 
     /// <summary>
     /// Maps a PUT request to a command that creates a resource, returning 201 Created with a
@@ -166,8 +242,20 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="getRouteValues">Builds the route values for the <c>Location</c> header from the response.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapPutCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPutCreate<TRequest, TResponse>(pattern, routeName, (_, response) => getRouteValues(response), binding);
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="getRouteValues"/> is null, or (via the target overload) <paramref name="endpoints"/>,
+    /// <paramref name="pattern"/>, or <paramref name="routeName"/> is null.
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="routeName"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapPutCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull
+    {
+        // getRouteValues is wrapped in a lambda before delegating, so a null check on the target overload
+        // would never see the null — it would only surface once the wrapper runs, per request.
+        ArgumentNullException.ThrowIfNull(getRouteValues);
+
+        return endpoints.MapPutCreate<TRequest, TResponse>(pattern, routeName, (_, response) => getRouteValues(response), binding);
+    }
 
     /// <summary>
     /// Maps a PUT request to a command that creates a resource, returning 201 Created with a
@@ -182,9 +270,23 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="getRouteValues">Builds the route values for the <c>Location</c> header from the command and the response.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Body"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapPutCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TRequest, TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull =>
-        endpoints.MapPut(pattern, EndpointHandlers.Create<TRequest, TResponse>(routeName, getRouteValues, binding))
-                 .Produces<TResponse>(StatusCodes.Status201Created);
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="endpoints"/>, <paramref name="pattern"/>, <paramref name="routeName"/>, or
+    /// <paramref name="getRouteValues"/> is null.
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="routeName"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapPutCreate<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, string routeName, Func<TRequest, TResponse, object?> getRouteValues, RequestBinding binding = RequestBinding.Body) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+        ArgumentException.ThrowIfNullOrEmpty(routeName);
+        ArgumentNullException.ThrowIfNull(getRouteValues);
+        ValidateBinding(binding);
+
+        return endpoints.MapPut(pattern, EndpointHandlers.Create<TRequest, TResponse>(routeName, getRouteValues, binding))
+                         .Produces<TResponse>(StatusCodes.Status201Created);
+    }
 
     /// <summary>
     /// Maps a DELETE request to a command that deletes a resource, returning 204 No Content.
@@ -194,9 +296,17 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="pattern">The route pattern.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Parameters"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapDeleteCommand<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, RequestBinding binding = RequestBinding.Parameters) where TRequest : notnull =>
-        endpoints.MapDelete(pattern, EndpointHandlers.VoidCommand<TRequest>(StatusCodes.Status204NoContent, binding))
-                 .Produces(StatusCodes.Status204NoContent);
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapDeleteCommand<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, RequestBinding binding = RequestBinding.Parameters) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+        ValidateBinding(binding);
+
+        return endpoints.MapDelete(pattern, EndpointHandlers.VoidCommand<TRequest>(StatusCodes.Status204NoContent, binding))
+                         .Produces(StatusCodes.Status204NoContent);
+    }
 
     /// <summary>
     /// Maps a DELETE request to a command that deletes a resource and returns a response.
@@ -208,7 +318,26 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <param name="statusCode">The success status code for the response body. Defaults to 200 OK.</param>
     /// <param name="binding">How the command is bound. Defaults to <see cref="RequestBinding.Parameters"/>.</param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
-    public static RouteHandlerBuilder MapDeleteCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Parameters) where TRequest : notnull =>
-        endpoints.MapDelete(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
-                 .Produces<TResponse>(statusCode);
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapDeleteCommand<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, int statusCode = StatusCodes.Status200OK, RequestBinding binding = RequestBinding.Parameters) where TRequest : notnull
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(pattern);
+        ValidateBinding(binding);
+
+        return endpoints.MapDelete(pattern, EndpointHandlers.Command<TRequest, TResponse>(statusCode, binding))
+                         .Produces<TResponse>(statusCode);
+    }
+
+    // Rejects a RequestBinding value outside the defined set. Without this, an undefined value falls
+    // through the discard arm of the switch in EndpointHandlers.Bind and silently gets Default binding,
+    // instead of failing loudly at map time.
+    private static void ValidateBinding(RequestBinding binding)
+    {
+        if (binding is not (RequestBinding.Default or RequestBinding.Body or RequestBinding.Parameters))
+        {
+            throw new ArgumentOutOfRangeException(nameof(binding), binding, $"'{binding}' is not a defined {nameof(RequestBinding)} value.");
+        }
+    }
 }

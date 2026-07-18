@@ -131,4 +131,71 @@ public class RegistrationTests
     }
 
     private sealed class AddCqrsMarker;
+
+    /// <summary>
+    /// Given an open generic that does not implement IQueryPipelineBehavior&lt;,&gt;.
+    /// When AddQueryPipelineBehavior is called with it.
+    /// Then an ArgumentException naming "behaviorType" is thrown at registration time, instead of MS.DI
+    /// failing only when the behavior is resolved.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AddQueryPipelineBehaviorWithNonImplementingOpenGenericThrows()
+    {
+        var services = new ServiceCollection();
+
+        var exception = Assert.Throws<ArgumentException>(() => services.AddQueryPipelineBehavior(typeof(List<>)));
+
+        Assert.Equal("behaviorType", exception.ParamName);
+    }
+
+    /// <summary>
+    /// Given an open generic that does not implement IStreamQueryPipelineBehavior&lt;,&gt;.
+    /// When AddStreamQueryPipelineBehavior is called with it.
+    /// Then an ArgumentException naming "behaviorType" is thrown at registration time.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AddStreamQueryPipelineBehaviorWithNonImplementingOpenGenericThrows()
+    {
+        var services = new ServiceCollection();
+
+        var exception = Assert.Throws<ArgumentException>(() => services.AddStreamQueryPipelineBehavior(typeof(List<>)));
+
+        Assert.Equal("behaviorType", exception.ParamName);
+    }
+
+    /// <summary>
+    /// Given a one-type-parameter open generic that does not implement ICommandPipelineBehavior&lt;&gt;.
+    /// When AddCommandPipelineBehavior is called with it.
+    /// Then an ArgumentException naming "behaviorType" is thrown at registration time (the arity-based
+    /// branch picks the one-parameter interface first, and validates against that one).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AddCommandPipelineBehaviorWithNonImplementingOneArgOpenGenericThrows()
+    {
+        var services = new ServiceCollection();
+
+        var exception = Assert.Throws<ArgumentException>(() => services.AddCommandPipelineBehavior(typeof(List<>)));
+
+        Assert.Equal("behaviorType", exception.ParamName);
+    }
+
+    /// <summary>
+    /// Given a two-type-parameter open generic that does not implement ICommandPipelineBehavior&lt;,&gt;.
+    /// When AddCommandPipelineBehavior is called with it.
+    /// Then an ArgumentException naming "behaviorType" is thrown at registration time (the arity-based
+    /// branch picks the two-parameter interface first, and validates against that one).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AddCommandPipelineBehaviorWithNonImplementingTwoArgOpenGenericThrows()
+    {
+        var services = new ServiceCollection();
+
+        var exception = Assert.Throws<ArgumentException>(() => services.AddCommandPipelineBehavior(typeof(Dictionary<,>)));
+
+        Assert.Equal("behaviorType", exception.ParamName);
+    }
 }
