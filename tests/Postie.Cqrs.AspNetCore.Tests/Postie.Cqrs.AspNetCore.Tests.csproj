@@ -1,10 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <CoverletInclude>[Postie.AspNetCore]*,[Postie.Cqrs.AspNetCore]*</CoverletInclude>
-    <CoverletExcludeByFile>**/*</CoverletExcludeByFile>
-  </PropertyGroup>
-
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />

@@ -1,10 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <CoverletInclude>[Postie.Cqrs.FluentValidation]*</CoverletInclude>
-    <CoverletExcludeByFile>**/*</CoverletExcludeByFile>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />

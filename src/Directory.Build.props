@@ -3,6 +3,8 @@
   <Import Project="..\Directory.Build.props" />
 
   <PropertyGroup>
+    <!-- Validates multi-target consistency at pack time. Do not add a PackageValidationBaselineVersion until 1.0.0 is published. -->
+    <EnablePackageValidation>true</EnablePackageValidation>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/AndrewMcLachlan/Postie</PackageProjectUrl>
     <PackageReadmeFile Condition="Exists('README.md')">README.md</PackageReadmeFile>
