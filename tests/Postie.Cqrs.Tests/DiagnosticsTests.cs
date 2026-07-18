@@ -38,6 +38,37 @@ public class DiagnosticsTests
         }
     }
 
+    public record DiagnosticsStream : IStreamQuery<int>;
+
+    public class DiagnosticsStreamHandler : IStreamQueryHandler<DiagnosticsStream, int>
+    {
+        public async IAsyncEnumerable<int> Handle(DiagnosticsStream query, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            for (var i = 1; i <= 3; i++)
+            {
+                await Task.Delay(1, cancellationToken);
+                yield return i;
+            }
+        }
+    }
+
+    // Never registered with a handler: dispatching it exercises the "no handler" synchronous failure
+    // path (GetRequiredService throws) before any activity is created.
+    public record UnregisteredStream : IStreamQuery<int>;
+
+    public record CancellableStream : IStreamQuery<int>;
+
+    public class CancellableStreamHandler : IStreamQueryHandler<CancellableStream, int>
+    {
+        public async IAsyncEnumerable<int> Handle(CancellableStream query, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            yield return 1;
+            await Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return 2;
+        }
+    }
+
     private static (ActivityListener listener, ConcurrentQueue<Activity> activities) Listen()
     {
         var activities = new ConcurrentQueue<Activity>();
@@ -129,6 +160,181 @@ public class DiagnosticsTests
 
             var activity = Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(FailingStream)}");
             Assert.Equal(ActivityStatusCode.Error, activity.Status);
+        }
+    }
+
+    /// <summary>
+    /// Given a listener and a stream query.
+    /// When the stream is dispatched but never enumerated.
+    /// Then Activity.Current is unchanged and no Postie activity is stopped.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void DispatchWithoutEnumerationDoesNotAlterActivityCurrent()
+    {
+        var (listener, activities) = Listen();
+        using (listener)
+        {
+            ServiceCollection services = new();
+            services.AddStreamQueryHandler<DiagnosticsStreamHandler, DiagnosticsStream, int>();
+            var dispatcher = services.BuildServiceProvider().GetRequiredService<IStreamQueryDispatcher>();
+
+            var before = Activity.Current;
+
+            _ = dispatcher.Dispatch(new DiagnosticsStream(), TestContext.Current.CancellationToken);
+
+            Assert.Same(before, Activity.Current);
+            Assert.DoesNotContain(activities, a => a.DisplayName == $"Postie {nameof(DiagnosticsStream)}");
+        }
+    }
+
+    /// <summary>
+    /// Given a listener and a stream query that is dispatched but not enumerated immediately.
+    /// When enumeration eventually runs to completion.
+    /// Then Activity.Current stayed unchanged until enumeration started, and exactly one activity is
+    /// recorded with a non-error status.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task DelayedEnumerationStartsActivityOnFirstMoveNext()
+    {
+        var (listener, activities) = Listen();
+        using (listener)
+        {
+            ServiceCollection services = new();
+            services.AddStreamQueryHandler<DiagnosticsStreamHandler, DiagnosticsStream, int>();
+            var dispatcher = services.BuildServiceProvider().GetRequiredService<IStreamQueryDispatcher>();
+
+            var before = Activity.Current;
+            var stream = dispatcher.Dispatch(new DiagnosticsStream(), TestContext.Current.CancellationToken);
+
+            Assert.Same(before, Activity.Current);
+
+            await foreach (var _ in stream)
+            {
+            }
+
+            var activity = Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(DiagnosticsStream)}");
+            Assert.NotEqual(ActivityStatusCode.Error, activity.Status);
+        }
+    }
+
+    /// <summary>
+    /// Given a listener and a stream query whose handler is never registered.
+    /// When the query is dispatched.
+    /// Then the dispatch call throws synchronously (GetRequiredService fails before any activity
+    /// exists) and Activity.Current is unchanged.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void SynchronousDispatchFailureDoesNotAlterActivityCurrent()
+    {
+        var (listener, activities) = Listen();
+        using (listener)
+        {
+            ServiceCollection services = new();
+            services.AddStreamQueryHandler<DiagnosticsStreamHandler, DiagnosticsStream, int>();
+            var dispatcher = services.BuildServiceProvider().GetRequiredService<IStreamQueryDispatcher>();
+
+            var before = Activity.Current;
+
+            Assert.Throws<InvalidOperationException>(
+                () => dispatcher.Dispatch(new UnregisteredStream(), TestContext.Current.CancellationToken));
+
+            Assert.Same(before, Activity.Current);
+            Assert.DoesNotContain(activities, a => a.DisplayName == $"Postie {nameof(UnregisteredStream)}");
+        }
+    }
+
+    /// <summary>
+    /// Given a listener and a stream query handler that completes successfully.
+    /// When the stream is fully enumerated.
+    /// Then the items are yielded, the activity is stopped with a duration covering enumeration, and
+    /// its status is not Error.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task SuccessfulEnumerationStopsActivityWithNonErrorStatus()
+    {
+        var (listener, activities) = Listen();
+        using (listener)
+        {
+            ServiceCollection services = new();
+            services.AddStreamQueryHandler<DiagnosticsStreamHandler, DiagnosticsStream, int>();
+            var dispatcher = services.BuildServiceProvider().GetRequiredService<IStreamQueryDispatcher>();
+
+            var items = new List<int>();
+            await foreach (var item in dispatcher.Dispatch(new DiagnosticsStream(), TestContext.Current.CancellationToken))
+            {
+                items.Add(item);
+            }
+
+            Assert.Equal([1, 2, 3], items);
+
+            var activity = Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(DiagnosticsStream)}");
+            Assert.NotEqual(ActivityStatusCode.Error, activity.Status);
+            Assert.True(activity.Duration > TimeSpan.Zero);
+        }
+    }
+
+    /// <summary>
+    /// Given a listener and a stream query that yields more than one item.
+    /// When the enumerator is disposed after only the first item is read.
+    /// Then the activity is still stopped (its finally block runs on early disposal).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task EarlyDisposalStopsActivity()
+    {
+        var (listener, activities) = Listen();
+        using (listener)
+        {
+            ServiceCollection services = new();
+            services.AddStreamQueryHandler<DiagnosticsStreamHandler, DiagnosticsStream, int>();
+            var dispatcher = services.BuildServiceProvider().GetRequiredService<IStreamQueryDispatcher>();
+
+            var stream = dispatcher.Dispatch(new DiagnosticsStream(), TestContext.Current.CancellationToken);
+
+            await using (var enumerator = stream.GetAsyncEnumerator(TestContext.Current.CancellationToken))
+            {
+                Assert.True(await enumerator.MoveNextAsync());
+                Assert.Equal(1, enumerator.Current);
+            }
+
+            var activity = Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(DiagnosticsStream)}");
+            Assert.NotNull(activity);
+        }
+    }
+
+    /// <summary>
+    /// Given a listener and a stream query being enumerated.
+    /// When the cancellation token is cancelled mid-enumeration.
+    /// Then OperationCanceledException propagates and the activity is stopped.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task CancellationMidEnumerationStopsActivity()
+    {
+        var (listener, activities) = Listen();
+        using (listener)
+        {
+            ServiceCollection services = new();
+            services.AddStreamQueryHandler<CancellableStreamHandler, CancellableStream, int>();
+            var dispatcher = services.BuildServiceProvider().GetRequiredService<IStreamQueryDispatcher>();
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+
+            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            {
+                await foreach (var item in dispatcher.Dispatch(new CancellableStream(), cts.Token))
+                {
+                    Assert.Equal(1, item);
+                    cts.Cancel();
+                }
+            });
+
+            var activity = Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(CancellableStream)}");
+            Assert.NotNull(activity);
         }
     }
 

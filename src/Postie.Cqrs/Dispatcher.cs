@@ -129,9 +129,16 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         var handler = serviceProvider.GetRequiredService(handlerType);
         var typedInvoker = (Func<object, object, CancellationToken, IAsyncEnumerable<TResponse>>)invoker;
 
-        var activity = StartActivity("stream", queryType);
         var stream = StreamPipeline(query, queryType, () => typedInvoker(handler, query, cancellationToken), cancellationToken);
-        return activity is null ? stream : Enumerate(activity, stream, cancellationToken);
+
+        // The activity must start and stop inside the enumeration lifetime: starting it here, at
+        // dispatch time, would leak into Activity.Current for a stream that is never enumerated, and a
+        // synchronous throw from StreamPipeline (behavior resolution) would escape before the activity
+        // could be stopped. Handler resolution and pipeline construction above stay eager so a missing
+        // handler still fails fast at dispatch time - that failure happens before any activity exists,
+        // so there is nothing to leak and nothing to record.
+        // The zero-listener fast path returns the pipeline stream untouched.
+        return PostieDiagnostics.ActivitySource.HasListeners() ? Enumerate(queryType, stream, cancellationToken) : stream;
     }
 
     // Folds any registered behaviors around the terminal handler call. When none are registered the
@@ -261,31 +268,34 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         }
     }
 
-    private static async IAsyncEnumerable<TResponse> Enumerate<TResponse>(Activity activity, IAsyncEnumerable<TResponse> source, [EnumeratorCancellation] CancellationToken cancellationToken)
+    // Owns the stream dispatch activity for its entire lifetime. The activity starts here, on first
+    // MoveNextAsync, rather than at Dispatch time, so a stream that is never enumerated never touches
+    // Activity.Current. The 'using' below always stops it - on normal completion, on an exception
+    // propagating out, or on early disposal of the enumerator (DisposeAsync runs this iterator's
+    // finally blocks, which include the 'using' scope).
+    private static async IAsyncEnumerable<TResponse> Enumerate<TResponse>(Type queryType, IAsyncEnumerable<TResponse> source, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using (activity)
+        using var activity = StartActivity("stream", queryType);
+        await using var enumerator = source.GetAsyncEnumerator(cancellationToken);
+        while (true)
         {
-            await using var enumerator = source.GetAsyncEnumerator(cancellationToken);
-            while (true)
+            bool hasNext;
+            try
             {
-                bool hasNext;
-                try
-                {
-                    hasNext = await enumerator.MoveNextAsync();
-                }
-                catch (Exception ex)
-                {
-                    activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-                    throw;
-                }
-
-                if (!hasNext)
-                {
-                    break;
-                }
-
-                yield return enumerator.Current;
+                hasNext = await enumerator.MoveNextAsync();
             }
+            catch (Exception ex)
+            {
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                throw;
+            }
+
+            if (!hasNext)
+            {
+                break;
+            }
+
+            yield return enumerator.Current;
         }
     }
 
