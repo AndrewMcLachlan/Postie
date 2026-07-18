@@ -10,8 +10,7 @@ namespace Postie.Cqrs.AspNetCore;
 /// </summary>
 /// <param name="queryDispatcher">The query dispatcher.</param>
 /// <param name="commandDispatcher">The command dispatcher.</param>
-/// <param name="streamQueryDispatcher">The stream query dispatcher.</param>
-internal sealed class PostieEndpointDispatcher(IQueryDispatcher queryDispatcher, ICommandDispatcher commandDispatcher, IStreamQueryDispatcher streamQueryDispatcher) : IEndpointDispatcher, IStreamEndpointDispatcher
+internal sealed class PostieEndpointDispatcher(IQueryDispatcher queryDispatcher, ICommandDispatcher commandDispatcher) : IEndpointDispatcher
 {
     public ValueTask<TResponse> DispatchAsync<TResponse>(object request, CancellationToken cancellationToken)
     {
@@ -34,15 +33,5 @@ internal sealed class PostieEndpointDispatcher(IQueryDispatcher queryDispatcher,
             ? commandDispatcher.Execute(command, cancellationToken)
             : throw new InvalidOperationException(
                 $"Request '{request.GetType().Name}' is not an ICommand. A no-response endpoint must map a command type that implements ICommand.");
-    }
-
-    public IAsyncEnumerable<TResponse> DispatchStream<TResponse>(object request, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-
-        return request is IStreamQuery<TResponse> streamQuery
-            ? streamQueryDispatcher.Dispatch(streamQuery, cancellationToken)
-            : throw new InvalidOperationException(
-                $"Request '{request.GetType().Name}' is not an IStreamQuery<{typeof(TResponse).Name}>. Map it with a stream query type that implements the matching Postie interface.");
     }
 }

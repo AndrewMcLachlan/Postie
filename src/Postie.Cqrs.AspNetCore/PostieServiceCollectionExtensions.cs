@@ -48,6 +48,12 @@ public static class PostieServiceCollectionExtensions
     /// Registers only the Postie endpoint dispatcher, for when the command and query handlers are
     /// registered separately.
     /// </summary>
+    /// <remarks>
+    /// <see cref="IEndpointDispatcher"/> only needs <c>IQueryDispatcher</c> and <c>ICommandDispatcher</c>
+    /// (from <c>AddQueryHandlers</c>/<c>AddCommandHandlers</c>). Streaming dispatch additionally requires
+    /// <c>IStreamQueryDispatcher</c>, registered by <c>AddStreamQueryHandlers</c> (or <c>AddCqrs</c>) — only
+    /// needed if the app maps streaming endpoints with <c>MapStreamQuery</c>.
+    /// </remarks>
     /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
     /// <returns>The same service collection so that multiple calls can be chained.</returns>
     public static IServiceCollection AddPostieEndpointDispatcher(this IServiceCollection services)
@@ -55,7 +61,7 @@ public static class PostieServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddTransient<IEndpointDispatcher, PostieEndpointDispatcher>();
-        services.TryAddTransient<IStreamEndpointDispatcher, PostieEndpointDispatcher>();
+        services.TryAddTransient<IStreamEndpointDispatcher, PostieStreamEndpointDispatcher>();
 
         return services;
     }
