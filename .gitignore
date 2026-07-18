@@ -342,3 +342,9 @@ docs/superpowers/
 
 # SDD scratch
 .superpowers/
+
+# Temp folders
+temp/
+tmp/
+docs/temp/
+
