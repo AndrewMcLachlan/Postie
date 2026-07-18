@@ -53,9 +53,7 @@ jobs:
         path: ${{ github.workspace }}/coverage
         retention-days: 30
 
-    # Packs only the six published src/ libraries. Packing the whole solution (as before) also
-    # tries to pack the samples/ projects, which are apps, not NuGet packages, and produces pack
-    # warnings for them on every build.
+    # Packs only the src/ libraries - the samples are apps, not NuGet packages.
     - name: Package
       run: |
         set -e

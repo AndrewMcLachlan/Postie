@@ -28,8 +28,8 @@ public static class PostieCqrsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(assemblies);
 
-        // No silent calling-assembly fallback: Assembly.GetCallingAssembly is unreliable under
-        // inlining, and the calling assembly is usually the host, not where the handlers live.
+        // A calling-assembly default would usually pick the host assembly, not the one holding the
+        // handlers - and Assembly.GetCallingAssembly is unreliable under inlining anyway.
         if (assemblies.Length == 0)
         {
             throw new ArgumentException("Specify at least one assembly to scan for handlers, or use AddCqrs<TMarker>().", nameof(assemblies));

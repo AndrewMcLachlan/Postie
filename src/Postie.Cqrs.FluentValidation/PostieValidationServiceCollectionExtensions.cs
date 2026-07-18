@@ -22,8 +22,8 @@ public static class PostieValidationServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(assemblies);
 
-        // No silent calling-assembly fallback: Assembly.GetCallingAssembly is unreliable under
-        // inlining, and the calling assembly is usually the host, not where the validators live.
+        // A calling-assembly default would usually pick the host assembly, not the one holding the
+        // validators - and Assembly.GetCallingAssembly is unreliable under inlining anyway.
         if (assemblies.Length == 0)
         {
             throw new ArgumentException("Specify at least one assembly to scan for validators, or use AddPostieValidation<TMarker>().", nameof(assemblies));

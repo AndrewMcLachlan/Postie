@@ -131,13 +131,8 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
 
         var stream = StreamPipeline(query, queryType, () => typedInvoker(handler, query, cancellationToken), cancellationToken);
 
-        // The activity must start and stop inside the enumeration lifetime: starting it here, at
-        // dispatch time, would leak into Activity.Current for a stream that is never enumerated, and a
-        // synchronous throw from StreamPipeline (behavior resolution) would escape before the activity
-        // could be stopped. Handler resolution and pipeline construction above stay eager so a missing
-        // handler still fails fast at dispatch time - that failure happens before any activity exists,
-        // so there is nothing to leak and nothing to record.
-        // The zero-listener fast path returns the pipeline stream untouched.
+        // Enumerate owns the activity; a stream that is never enumerated must not touch
+        // Activity.Current. With no listener the pipeline stream is returned untouched.
         return PostieDiagnostics.ActivitySource.HasListeners() ? Enumerate(queryType, stream, cancellationToken) : stream;
     }
 
@@ -268,11 +263,9 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         }
     }
 
-    // Owns the stream dispatch activity for its entire lifetime. The activity starts here, on first
-    // MoveNextAsync, rather than at Dispatch time, so a stream that is never enumerated never touches
-    // Activity.Current. The 'using' below always stops it - on normal completion, on an exception
-    // propagating out, or on early disposal of the enumerator (DisposeAsync runs this iterator's
-    // finally blocks, which include the 'using' scope).
+    // Owns the stream dispatch activity: it starts on first MoveNextAsync and the 'using' stops it
+    // on completion, exception, or early disposal, so an unenumerated stream never touches
+    // Activity.Current.
     private static async IAsyncEnumerable<TResponse> Enumerate<TResponse>(Type queryType, IAsyncEnumerable<TResponse> source, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = StartActivity("stream", queryType);

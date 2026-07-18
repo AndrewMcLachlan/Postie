@@ -49,18 +49,13 @@ jobs:
           echo "package-version=${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}" >> $GITHUB_OUTPUT
         fi
 
-    # Stable releases must be built from the exact version tag. The tag is created and protected
-    # by the maintainer - agents never tag. This anchors a stable publish to a specific, reviewed
-    # commit instead of whatever main happens to be at dispatch time.
+    # Anchors a stable publish to a specific, reviewed, protected tag instead of whatever main
+    # happens to be at dispatch time.
     - name: Verify release tag (stable only)
-      # inputs.isprerelease is a real boolean in expression context (workflow_dispatch boolean
-      # input), so use !inputs.isprerelease rather than comparing against a string literal -
-      # boolean == 'false' coerces to number-vs-NaN and never matches.
       if: ${{ !inputs.isprerelease }}
       run: |
         TAG="v${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}"
-        # `git tag --points-at HEAD` (not `git describe --exact-match`) is robust when multiple
-        # tags point at the same commit - describe only ever reports one of them and can miss $TAG.
+        # A commit can carry several tags; check membership rather than a single reported tag.
         if ! git tag --points-at HEAD | grep -Fxq "$TAG"; then
           ACTUAL=$(git tag --points-at HEAD | paste -sd, - )
           echo "::error::Stable releases must run from the exact version tag $TAG (HEAD is '$ACTUAL')."
