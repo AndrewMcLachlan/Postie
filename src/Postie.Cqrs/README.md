@@ -108,6 +108,9 @@ builder.Services.AddOpenTelemetry().WithTracing(t => t.AddSource(PostieDiagnosti
 When nothing is listening the dispatch takes an allocation-free fast path, so tracing costs nothing until
 you opt in.
 
+For streaming queries the activity starts when enumeration begins (not at dispatch) and parents to the
+enumeration-time `Activity.Current`, so an unenumerated stream records nothing.
+
 For ready-made FluentValidation behaviors see [Postie.Cqrs.FluentValidation](https://www.nuget.org/packages/Postie.Cqrs.FluentValidation).
 
 ## Map to minimal API endpoints
