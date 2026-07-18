@@ -52,9 +52,15 @@ public class DiagnosticsTests
         }
     }
 
-    // Never registered with a handler: dispatching it exercises the "no handler" synchronous failure
-    // path (GetRequiredService throws) before any activity is created.
-    public record UnregisteredStream : IStreamQuery<int>;
+    // Its constructor throws, so behavior resolution inside StreamPipeline fails synchronously at
+    // dispatch time - after handler resolution, which is the exact point the pre-fix code had already
+    // started (and would then leak) the activity.
+    private sealed class ThrowingCtorBehavior<TQuery, TResponse> : IStreamQueryPipelineBehavior<TQuery, TResponse> where TQuery : IStreamQuery<TResponse>
+    {
+        public ThrowingCtorBehavior() => throw new InvalidOperationException("behavior ctor boom");
+
+        public IAsyncEnumerable<TResponse> Handle(TQuery query, StreamHandlerDelegate<TResponse> next, CancellationToken cancellationToken) => next();
+    }
 
     public record CancellableStream : IStreamQuery<int>;
 
@@ -220,29 +226,30 @@ public class DiagnosticsTests
     }
 
     /// <summary>
-    /// Given a listener and a stream query whose handler is never registered.
-    /// When the query is dispatched.
-    /// Then the dispatch call throws synchronously (GetRequiredService fails before any activity
-    /// exists) and Activity.Current is unchanged.
+    /// Given a listener and a stream pipeline behavior whose constructor throws.
+    /// When the query is dispatched (without enumerating).
+    /// Then the dispatch call throws synchronously from pipeline construction, before any activity
+    /// exists, and Activity.Current is unchanged.
     /// </summary>
     [Fact]
     [Trait("Category", "Unit")]
-    public void SynchronousDispatchFailureDoesNotAlterActivityCurrent()
+    public void SynchronousPipelineConstructionFailureDoesNotAlterActivityCurrent()
     {
         var (listener, activities) = Listen();
         using (listener)
         {
             ServiceCollection services = new();
             services.AddStreamQueryHandler<DiagnosticsStreamHandler, DiagnosticsStream, int>();
+            services.AddStreamQueryPipelineBehavior(typeof(ThrowingCtorBehavior<,>));
             var dispatcher = services.BuildServiceProvider().GetRequiredService<IStreamQueryDispatcher>();
 
             var before = Activity.Current;
 
             Assert.Throws<InvalidOperationException>(
-                () => dispatcher.Dispatch(new UnregisteredStream(), TestContext.Current.CancellationToken));
+                () => dispatcher.Dispatch(new DiagnosticsStream(), TestContext.Current.CancellationToken));
 
             Assert.Same(before, Activity.Current);
-            Assert.DoesNotContain(activities, a => a.DisplayName == $"Postie {nameof(UnregisteredStream)}");
+            Assert.DoesNotContain(activities, a => a.DisplayName == $"Postie {nameof(DiagnosticsStream)}");
         }
     }
 
@@ -263,6 +270,8 @@ public class DiagnosticsTests
             services.AddStreamQueryHandler<DiagnosticsStreamHandler, DiagnosticsStream, int>();
             var dispatcher = services.BuildServiceProvider().GetRequiredService<IStreamQueryDispatcher>();
 
+            var before = Activity.Current;
+
             var items = new List<int>();
             await foreach (var item in dispatcher.Dispatch(new DiagnosticsStream(), TestContext.Current.CancellationToken))
             {
@@ -270,6 +279,7 @@ public class DiagnosticsTests
             }
 
             Assert.Equal([1, 2, 3], items);
+            Assert.Same(before, Activity.Current);
 
             var activity = Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(DiagnosticsStream)}");
             Assert.NotEqual(ActivityStatusCode.Error, activity.Status);
@@ -301,8 +311,7 @@ public class DiagnosticsTests
                 Assert.Equal(1, enumerator.Current);
             }
 
-            var activity = Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(DiagnosticsStream)}");
-            Assert.NotNull(activity);
+            Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(DiagnosticsStream)}");
         }
     }
 
@@ -333,8 +342,7 @@ public class DiagnosticsTests
                 }
             });
 
-            var activity = Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(CancellableStream)}");
-            Assert.NotNull(activity);
+            Assert.Single(activities, a => a.DisplayName == $"Postie {nameof(CancellableStream)}");
         }
     }
 
