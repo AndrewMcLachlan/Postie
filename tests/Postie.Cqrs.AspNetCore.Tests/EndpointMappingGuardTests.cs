@@ -23,10 +23,10 @@ public class EndpointMappingGuardTests
         yield return new object[] { "MapPutCommand<T,R>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCommand<SubmitWidget, Widget>(null!, "/x")) };
         yield return new object[] { "MapPutCommand<T>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCommand<DeleteWidget>(null!, "/x")) };
         yield return new object[] { "MapPatchCommand<T,R>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPatchCommand<SubmitWidget, Widget>(null!, "/x")) };
-        yield return new object[] { "MapPostCreate (delegating)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(null!, "/x", "route", (Func<Widget, object?>)(r => r))) };
-        yield return new object[] { "MapPostCreate (target)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(null!, "/x", "route", (Func<CreateWidget, Widget, object?>)((_, r) => r))) };
-        yield return new object[] { "MapPutCreate (delegating)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(null!, "/x", "route", (Func<Widget, object?>)(r => r))) };
-        yield return new object[] { "MapPutCreate (target)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(null!, "/x", "route", (Func<CreateWidget, Widget, object?>)((_, r) => r))) };
+        yield return new object[] { "MapPostCreate (delegating)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(null!, "/x", "route", (Func<Widget, object>)(r => r))) };
+        yield return new object[] { "MapPostCreate (target)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(null!, "/x", "route", (Func<CreateWidget, Widget, object>)((_, r) => r))) };
+        yield return new object[] { "MapPutCreate (delegating)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(null!, "/x", "route", (Func<Widget, object>)(r => r))) };
+        yield return new object[] { "MapPutCreate (target)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(null!, "/x", "route", (Func<CreateWidget, Widget, object>)((_, r) => r))) };
         yield return new object[] { "MapDeleteCommand<T>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapDeleteCommand<DeleteWidget>(null!, "/x")) };
         yield return new object[] { "MapDeleteCommand<T,R>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapDeleteCommand<PurgeWidget, Widget>(null!, "/x")) };
     }
@@ -56,10 +56,10 @@ public class EndpointMappingGuardTests
         yield return new object[] { "MapPutCommand<T,R>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCommand<SubmitWidget, Widget>(BuildApp(), null!)) };
         yield return new object[] { "MapPutCommand<T>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCommand<DeleteWidget>(BuildApp(), null!)) };
         yield return new object[] { "MapPatchCommand<T,R>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPatchCommand<SubmitWidget, Widget>(BuildApp(), null!)) };
-        yield return new object[] { "MapPostCreate (delegating)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), null!, "route", (Func<Widget, object?>)(r => r))) };
-        yield return new object[] { "MapPostCreate (target)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), null!, "route", (Func<CreateWidget, Widget, object?>)((_, r) => r))) };
-        yield return new object[] { "MapPutCreate (delegating)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), null!, "route", (Func<Widget, object?>)(r => r))) };
-        yield return new object[] { "MapPutCreate (target)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), null!, "route", (Func<CreateWidget, Widget, object?>)((_, r) => r))) };
+        yield return new object[] { "MapPostCreate (delegating)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), null!, "route", (Func<Widget, object>)(r => r))) };
+        yield return new object[] { "MapPostCreate (target)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), null!, "route", (Func<CreateWidget, Widget, object>)((_, r) => r))) };
+        yield return new object[] { "MapPutCreate (delegating)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), null!, "route", (Func<Widget, object>)(r => r))) };
+        yield return new object[] { "MapPutCreate (target)", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), null!, "route", (Func<CreateWidget, Widget, object>)((_, r) => r))) };
         yield return new object[] { "MapDeleteCommand<T>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapDeleteCommand<DeleteWidget>(BuildApp(), null!)) };
         yield return new object[] { "MapDeleteCommand<T,R>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapDeleteCommand<PurgeWidget, Widget>(BuildApp(), null!)) };
     }
@@ -83,10 +83,10 @@ public class EndpointMappingGuardTests
 
     public static IEnumerable<object[]> RouteNameInvalidCases()
     {
-        yield return new object[] { "MapPostCreate-null", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", null!, (Func<CreateWidget, Widget, object?>)((_, r) => r))), typeof(ArgumentNullException) };
-        yield return new object[] { "MapPostCreate-empty", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", "", (Func<CreateWidget, Widget, object?>)((_, r) => r))), typeof(ArgumentException) };
-        yield return new object[] { "MapPutCreate-null", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", null!, (Func<CreateWidget, Widget, object?>)((_, r) => r))), typeof(ArgumentNullException) };
-        yield return new object[] { "MapPutCreate-empty", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", "", (Func<CreateWidget, Widget, object?>)((_, r) => r))), typeof(ArgumentException) };
+        yield return new object[] { "MapPostCreate-null", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", null!, (Func<CreateWidget, Widget, object>)((_, r) => r))), typeof(ArgumentNullException) };
+        yield return new object[] { "MapPostCreate-empty", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", "", (Func<CreateWidget, Widget, object>)((_, r) => r))), typeof(ArgumentException) };
+        yield return new object[] { "MapPutCreate-null", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", null!, (Func<CreateWidget, Widget, object>)((_, r) => r))), typeof(ArgumentNullException) };
+        yield return new object[] { "MapPutCreate-empty", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", "", (Func<CreateWidget, Widget, object>)((_, r) => r))), typeof(ArgumentException) };
     }
 
     /// <summary>
@@ -108,10 +108,10 @@ public class EndpointMappingGuardTests
 
     public static IEnumerable<object[]> GetRouteValuesNullCases()
     {
-        yield return new object[] { "MapPostCreate-target", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<CreateWidget, Widget, object?>)null!)) };
-        yield return new object[] { "MapPostCreate-delegating", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<Widget, object?>)null!)) };
-        yield return new object[] { "MapPutCreate-target", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<CreateWidget, Widget, object?>)null!)) };
-        yield return new object[] { "MapPutCreate-delegating", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<Widget, object?>)null!)) };
+        yield return new object[] { "MapPostCreate-target", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<CreateWidget, Widget, object>)null!)) };
+        yield return new object[] { "MapPostCreate-delegating", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<Widget, object>)null!)) };
+        yield return new object[] { "MapPutCreate-target", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<CreateWidget, Widget, object>)null!)) };
+        yield return new object[] { "MapPutCreate-delegating", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<Widget, object>)null!)) };
     }
 
     /// <summary>
@@ -140,8 +140,8 @@ public class EndpointMappingGuardTests
         yield return new object[] { "MapPutCommand<T,R>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCommand<SubmitWidget, Widget>(BuildApp(), "/x", binding: undefined)) };
         yield return new object[] { "MapPutCommand<T>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCommand<DeleteWidget>(BuildApp(), "/x", binding: undefined)) };
         yield return new object[] { "MapPatchCommand<T,R>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPatchCommand<SubmitWidget, Widget>(BuildApp(), "/x", binding: undefined)) };
-        yield return new object[] { "MapPostCreate", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<CreateWidget, Widget, object?>)((_, r) => r), undefined)) };
-        yield return new object[] { "MapPutCreate", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<CreateWidget, Widget, object?>)((_, r) => r), undefined)) };
+        yield return new object[] { "MapPostCreate", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPostCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<CreateWidget, Widget, object>)((_, r) => r), undefined)) };
+        yield return new object[] { "MapPutCreate", (Action)(() => PostieEndpointRouteBuilderExtensions.MapPutCreate<CreateWidget, Widget>(BuildApp(), "/x", "route", (Func<CreateWidget, Widget, object>)((_, r) => r), undefined)) };
         yield return new object[] { "MapDeleteCommand<T>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapDeleteCommand<DeleteWidget>(BuildApp(), "/x", undefined)) };
         yield return new object[] { "MapDeleteCommand<T,R>", (Action)(() => PostieEndpointRouteBuilderExtensions.MapDeleteCommand<PurgeWidget, Widget>(BuildApp(), "/x", binding: undefined)) };
     }
