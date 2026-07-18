@@ -348,3 +348,6 @@ temp/
 tmp/
 docs/temp/
 
+
+# Local working documents
+docs/temp/

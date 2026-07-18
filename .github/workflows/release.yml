@@ -102,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     # Protected environment - created and gated by the maintainer. Publishing waits for that
     # manual approval before the trusted-publishing OIDC exchange happens.
-    environment: nuget
+    environment: nuget.org
     permissions:
       contents: read
       id-token: write
@@ -120,7 +120,7 @@ jobs:
 
     # NuGet Trusted Publishing: exchanges this job's GitHub OIDC token (permissions.id-token:
     # write, above) for a short-lived (1 hour) nuget.org API key. Requires a Trusted Publishing
-    # policy configured on nuget.org for this repo/workflow (scoped to the "nuget" environment),
+    # policy configured on nuget.org for this repo/workflow (scoped to the "nuget.org" environment),
     # and a NUGET_USER repository variable set to the nuget.org account/profile name to publish
     # as. See https://learn.microsoft.com/nuget/nuget-org/trusted-publishing
     - name: NuGet login (OIDC -> temp API key)
