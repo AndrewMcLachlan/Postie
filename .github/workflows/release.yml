@@ -52,7 +52,10 @@ jobs:
     # by the maintainer - agents never tag. This anchors a stable publish to a specific, reviewed
     # commit instead of whatever main happens to be at dispatch time.
     - name: Verify release tag (stable only)
-      if: ${{ inputs.isprerelease == 'false' }}
+      # inputs.isprerelease is a real boolean in expression context (workflow_dispatch boolean
+      # input), so use !inputs.isprerelease rather than comparing against a string literal -
+      # boolean == 'false' coerces to number-vs-NaN and never matches.
+      if: ${{ !inputs.isprerelease }}
       run: |
         TAG="v${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}"
         ACTUAL=$(git describe --exact-match --tags HEAD 2>/dev/null || true)
@@ -130,5 +133,8 @@ jobs:
 
     # --skip-duplicate: retries re-publish the identical validated artifacts from this run's
     # upload, so skipping already-pushed IDs is safe and enables partial-failure retry.
+    # The matching .snupkg symbol packages are pushed automatically alongside each .nupkg
+    # because both sit in the same downloaded folder - do not separate them into subfolders
+    # or that implicit convention breaks and symbols stop being published.
     - name: Publish to NuGet.org
       run: dotnet nuget push ${{ github.workspace }}/publish/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
