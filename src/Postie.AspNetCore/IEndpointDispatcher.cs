@@ -13,7 +13,7 @@ namespace Postie.AspNetCore;
 /// <item>MediatR: reference <c>Postie.AspNetCore.MediatR</c>.</item>
 /// <item>Anything else: implement this interface (two methods) and register it.</item>
 /// </list>
-/// The request is typed as <see cref="object"/> so that no mediator's request marker (Postie's
+/// The request is typed as <see cref="Object"/> so that no mediator's request marker (Postie's
 /// <c>IQuery</c>/<c>ICommand</c>, MediatR's <c>IRequest</c>) leaks into the engine. Implementations
 /// receive the concrete request instance the framework bound and route it however that mediator expects.
 /// </remarks>
