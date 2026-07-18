@@ -25,7 +25,7 @@ public class CreateOrderValidator : AbstractValidator<CreateOrder>
 
 // Program.cs
 builder.Services.AddCqrs<CreateOrder>();
-builder.Services.AddPostieValidation<CreateOrder>();   // scans validators + wires behaviors
+builder.Services.AddPostieValidation<CreateOrderValidator>();   // scans the marker's assembly for validators + wires behaviors
 ```
 
 Now dispatching a `CreateOrder` with an empty `Customer` throws `ValidationException` before the handler

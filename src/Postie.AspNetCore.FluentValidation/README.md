@@ -15,6 +15,11 @@ that throws `ValidationException` — including MediatR validation behaviors.
 
 ## Usage
 
+This example maps endpoints with
+[Postie.Cqrs.AspNetCore](https://www.nuget.org/packages/Postie.Cqrs.AspNetCore) and validates with
+[Postie.Cqrs.FluentValidation](https://www.nuget.org/packages/Postie.Cqrs.FluentValidation) — but the
+handler itself needs neither; it catches `ValidationException` wherever it is thrown from.
+
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 

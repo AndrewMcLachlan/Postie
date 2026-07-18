@@ -14,6 +14,8 @@ dotnet add package Postie.Cqrs
 using Postie.Cqrs.Queries;
 using Postie.Cqrs.Commands;
 
+public record Order(int Id);
+
 public record GetOrder(int Id) : IQuery<Order>;
 
 public class GetOrderHandler : IQueryHandler<GetOrder, Order>
