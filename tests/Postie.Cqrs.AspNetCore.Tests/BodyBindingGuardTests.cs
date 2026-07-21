@@ -91,4 +91,23 @@ public class BodyBindingGuardTests
 
         Assert.Contains(nameof(ArchiveWidget), exception.Message);
     }
+
+    /// <summary>
+    /// Given a hybrid query with binding-source attributes.
+    /// When it is mapped with QueryMethod.Post (Body binding by default).
+    /// Then mapping throws at startup, proving the guard covers the query path.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void BodyBindingGuardCoversQueryPath()
+    {
+        var app = BuildApp();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            app.MapQuery<SearchWidgetsIn, Widget>("/widgets/search", QueryMethod.Post));
+
+        Assert.Contains(nameof(SearchWidgetsIn), exception.Message);
+        Assert.Contains("CategoryId", exception.Message);
+        Assert.Contains(nameof(RequestBinding.Parameters), exception.Message);
+    }
 }

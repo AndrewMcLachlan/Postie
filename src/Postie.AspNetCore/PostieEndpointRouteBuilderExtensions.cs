@@ -6,29 +6,41 @@ namespace Postie.AspNetCore;
 /// </summary>
 /// <remarks>
 /// Command-mapping methods take a <see cref="RequestBinding"/> that defaults to <see cref="RequestBinding.Body"/>
-/// for POST/PUT/PATCH and <see cref="RequestBinding.Parameters"/> for DELETE. Queries always bind from
-/// route/query/header values. Each method returns the <see cref="RouteHandlerBuilder"/> so the endpoint
-/// can be customised further (<c>WithName</c>, <c>RequireAuthorization</c>, and so on).
+/// for POST/PUT/PATCH and <see cref="RequestBinding.Parameters"/> for DELETE. Query-mapping methods take a
+/// <see cref="QueryMethod"/> selecting the HTTP method (GET by default) and bind idiomatically for it —
+/// route/query/header values for GET, the request body for POST and QUERY — unless an explicit
+/// <see cref="RequestBinding"/> overrides that. Each method returns the <see cref="RouteHandlerBuilder"/> so the
+/// endpoint can be customised further (<c>WithName</c>, <c>RequireAuthorization</c>, and so on).
 /// </remarks>
 public static class PostieEndpointRouteBuilderExtensions
 {
     /// <summary>
-    /// Maps a GET request to a query. The query is bound from route, query and header values. A null
-    /// result returns 404 Not Found; any other result returns 200 OK.
+    /// Maps a query to an endpoint. By default the endpoint is a GET bound from route, query and
+    /// header values; <paramref name="method"/> selects POST or the HTTP QUERY method instead, both
+    /// of which bind the query from the request body by default. A null result returns 404 Not Found;
+    /// any other result returns 200 OK, whichever method is used.
     /// </summary>
     /// <typeparam name="TRequest">The type of the query.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
     /// <param name="pattern">The route pattern.</param>
+    /// <param name="method">The HTTP method to map. Defaults to <see cref="QueryMethod.Get"/>.</param>
+    /// <param name="binding">
+    /// How the query is bound. Defaults to the idiomatic binding for <paramref name="method"/>:
+    /// <see cref="RequestBinding.Parameters"/> for GET, <see cref="RequestBinding.Body"/> for POST
+    /// and QUERY.
+    /// </param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
-    public static RouteHandlerBuilder MapQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern) where TRequest : notnull
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="method"/> is not a defined <see cref="QueryMethod"/> value, or <paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, QueryMethod method = QueryMethod.Get, RequestBinding? binding = null) where TRequest : notnull
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         ArgumentNullException.ThrowIfNull(pattern);
+        ValidateQueryMethod(method);
 
-        var builder = endpoints.MapGet(pattern, EndpointHandlers.Query<TRequest, TResponse>())
-                               .Produces<TResponse>();
+        var builder = MapQueryVerb(endpoints, pattern, method, EndpointHandlers.Query<TRequest, TResponse>(ResolveQueryBinding(method, binding)))
+                        .Produces<TResponse>();
 
         // A non-nullable value type can never be null, so only reference-type and Nullable<T>
         // queries can take the null-to-404 path and only they advertise it.
@@ -338,6 +350,37 @@ public static class PostieEndpointRouteBuilderExtensions
         if (binding is not (RequestBinding.Default or RequestBinding.Body or RequestBinding.Parameters))
         {
             throw new ArgumentOutOfRangeException(nameof(binding), binding, $"'{binding}' is not a defined {nameof(RequestBinding)} value.");
+        }
+    }
+
+    // The HTTP QUERY method has no Map{Verb} shorthand and no HttpMethods constant before .NET 10,
+    // so the method string is pinned here for every target framework.
+    private const string QueryHttpMethod = "QUERY";
+
+    private static RouteHandlerBuilder MapQueryVerb(IEndpointRouteBuilder endpoints, string pattern, QueryMethod method, Delegate handler) =>
+        method switch
+        {
+            QueryMethod.Get => endpoints.MapGet(pattern, handler),
+            QueryMethod.Post => endpoints.MapPost(pattern, handler),
+            _ => endpoints.MapMethods(pattern, [QueryHttpMethod], handler),
+        };
+
+    private static RequestBinding ResolveQueryBinding(QueryMethod method, RequestBinding? binding)
+    {
+        if (binding is { } explicitBinding)
+        {
+            ValidateBinding(explicitBinding);
+            return explicitBinding;
+        }
+
+        return method == QueryMethod.Get ? RequestBinding.Parameters : RequestBinding.Body;
+    }
+
+    private static void ValidateQueryMethod(QueryMethod method)
+    {
+        if (method is not (QueryMethod.Get or QueryMethod.Post or QueryMethod.Query))
+        {
+            throw new ArgumentOutOfRangeException(nameof(method), method, $"'{method}' is not a defined {nameof(QueryMethod)} value.");
         }
     }
 }

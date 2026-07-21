@@ -9,16 +9,18 @@ namespace Postie.Cqrs.AspNetCore.Tests;
 
 public class EndpointMetadataTests
 {
-    private static IReadOnlyList<IProducesResponseTypeMetadata> ProducesFor(Action<IEndpointRouteBuilder> map)
+    private static Endpoint EndpointFor(Action<IEndpointRouteBuilder> map)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Services.AddPostie(typeof(GetGreeting).Assembly);
         var app = builder.Build();
         map(app);
 
-        var endpoint = ((IEndpointRouteBuilder)app).DataSources.SelectMany(ds => ds.Endpoints).Single();
-        return endpoint.Metadata.GetOrderedMetadata<IProducesResponseTypeMetadata>();
+        return ((IEndpointRouteBuilder)app).DataSources.SelectMany(ds => ds.Endpoints).Single();
     }
+
+    private static IReadOnlyList<IProducesResponseTypeMetadata> ProducesFor(Action<IEndpointRouteBuilder> map) =>
+        EndpointFor(map).Metadata.GetOrderedMetadata<IProducesResponseTypeMetadata>();
 
     /// <summary>
     /// Given a query with a reference-type response.
@@ -75,5 +77,47 @@ public class EndpointMetadataTests
         var produces = ProducesFor(app => app.MapCommand<SubmitWidget, Widget>("/widgets"));
 
         Assert.DoesNotContain(produces, m => m.StatusCode == StatusCodes.Status400BadRequest);
+    }
+
+    /// <summary>
+    /// Given a query mapped with QueryMethod.Post.
+    /// When its endpoint metadata is inspected.
+    /// Then the endpoint routes the POST method only.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void MapQueryWithPostRoutesPostMethod()
+    {
+        var endpoint = EndpointFor(app => app.MapQuery<SearchWidgets, Widget>("/widgets/search", QueryMethod.Post));
+
+        Assert.Equal(["POST"], endpoint.Metadata.GetMetadata<HttpMethodMetadata>().HttpMethods);
+    }
+
+    /// <summary>
+    /// Given a query mapped with QueryMethod.Query.
+    /// When its endpoint metadata is inspected.
+    /// Then the endpoint routes the QUERY method only.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void MapQueryWithQueryVerbRoutesQueryMethod()
+    {
+        var endpoint = EndpointFor(app => app.MapQuery<SearchWidgets, Widget>("/widgets/search", QueryMethod.Query));
+
+        Assert.Equal(["QUERY"], endpoint.Metadata.GetMetadata<HttpMethodMetadata>().HttpMethods);
+    }
+
+    /// <summary>
+    /// Given a POST query with a reference-type response.
+    /// When its endpoint metadata is inspected.
+    /// Then 404 is advertised — the null-to-404 convention is verb-independent.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void MapQueryWithPostAdvertises404ForReferenceTypeResponse()
+    {
+        var produces = ProducesFor(app => app.MapQuery<SearchWidgets, Widget>("/widgets/search", QueryMethod.Post));
+
+        Assert.Contains(produces, m => m.StatusCode == StatusCodes.Status404NotFound);
     }
 }

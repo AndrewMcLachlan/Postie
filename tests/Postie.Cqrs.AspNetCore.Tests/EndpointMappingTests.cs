@@ -289,4 +289,99 @@ public class EndpointMappingTests
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    /// <summary>
+    /// Given a query mapped with MapQuery and QueryMethod.Post.
+    /// When the POST endpoint is called with the criteria as a JSON body.
+    /// Then the query handler runs and its response is returned with 200 OK.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapQueryWithPostBindsBodyAndReturnsOk()
+    {
+        var client = await StartAsync(app => app.MapQuery<SearchWidgets, Widget>("/widgets/search", QueryMethod.Post));
+
+        var response = await client.PostAsJsonAsync("/widgets/search", new SearchWidgets("cog", 2), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(new Widget(2, "cog"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Given a query mapped with MapQuery and QueryMethod.Query.
+    /// When the endpoint is called with the HTTP QUERY method and a JSON body.
+    /// Then the query handler runs and its response is returned with 200 OK.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapQueryWithQueryVerbBindsBodyAndReturnsOk()
+    {
+        var client = await StartAsync(app => app.MapQuery<SearchWidgets, Widget>("/widgets/search", QueryMethod.Query));
+
+        var request = new HttpRequestMessage(new HttpMethod("QUERY"), "/widgets/search")
+        {
+            Content = JsonContent.Create(new SearchWidgets("sprocket", 5)),
+        };
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(new Widget(5, "sprocket"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Given a POST query whose handler returns null.
+    /// When the endpoint is called for missing criteria.
+    /// Then 404 Not Found is returned — the null-result convention is verb-independent.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapQueryWithPostReturnsNotFoundWhenHandlerReturnsNull()
+    {
+        var client = await StartAsync(app => app.MapQuery<SearchWidgets, Widget>("/widgets/search", QueryMethod.Post));
+
+        var response = await client.PostAsJsonAsync("/widgets/search", new SearchWidgets("missing", 1), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Given a hybrid POST query mapped with an explicit Parameters binding override.
+    /// When the POST endpoint is called with a route value and a JSON body.
+    /// Then both sources are bound and the response reflects them.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapQueryWithPostAndParametersOverrideBindsHybrid()
+    {
+        var client = await StartAsync(app =>
+            app.MapQuery<SearchWidgetsIn, Widget>("/categories/{categoryId}/search", QueryMethod.Post, RequestBinding.Parameters));
+
+        var response = await client.PostAsJsonAsync("/categories/3/search", new SearchCriteria("gear"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(new Widget(3, "gear"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Given a GET query mapped with an explicit Body binding override — a combination Postie
+    /// allows rather than prescribes against.
+    /// When the GET endpoint is called with a JSON body.
+    /// Then the body is bound and the handler's response is returned with 200 OK.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapQueryWithGetAndBodyOverrideBindsBody()
+    {
+        var client = await StartAsync(app =>
+            app.MapQuery<SearchWidgets, Widget>("/widgets/search", QueryMethod.Get, RequestBinding.Body));
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/widgets/search")
+        {
+            Content = JsonContent.Create(new SearchWidgets("axle", 4)),
+        };
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(new Widget(4, "axle"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
+    }
 }

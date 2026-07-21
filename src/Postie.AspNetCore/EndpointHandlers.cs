@@ -9,12 +9,14 @@ namespace Postie.AspNetCore;
 /// </summary>
 internal static class EndpointHandlers
 {
-    internal static Delegate Query<TRequest, TResponse>() where TRequest : notnull =>
-        async ([AsParameters] TRequest request, IEndpointDispatcher dispatcher, CancellationToken cancellationToken) =>
-        {
-            var result = await dispatcher.DispatchAsync<TResponse>(request, cancellationToken);
-            return result is null ? Results.NotFound() : Results.Ok(result);
-        };
+    internal static Delegate Query<TRequest, TResponse>(RequestBinding binding) where TRequest : notnull =>
+        Bind<TRequest>(
+            async (request, dispatcher, cancellationToken) =>
+            {
+                var result = await dispatcher.DispatchAsync<TResponse>(request, cancellationToken);
+                return result is null ? Results.NotFound() : Results.Ok(result);
+            },
+            binding);
 
     internal static Delegate StreamQuery<TRequest, TResponse>() where TRequest : notnull =>
         ([AsParameters] TRequest request, IStreamEndpointDispatcher dispatcher, CancellationToken cancellationToken) =>
@@ -98,7 +100,7 @@ internal static class EndpointHandlers
         if (offending.Count > 0)
         {
             throw new InvalidOperationException(
-                $"Command '{typeof(TRequest).Name}' is mapped with RequestBinding.Body, but member(s) {String.Join(", ", offending)} have [FromRoute]/[FromQuery]/[FromHeader]/[FromForm] attributes that are ignored when the whole command binds from the body. Map the endpoint with RequestBinding.Parameters to bind members from different sources.");
+                $"Request type '{typeof(TRequest).Name}' is mapped with RequestBinding.Body, but member(s) {String.Join(", ", offending)} have [FromRoute]/[FromQuery]/[FromHeader]/[FromForm] attributes that are ignored when the whole request binds from the body. Map the endpoint with RequestBinding.Parameters to bind members from different sources.");
         }
     }
 

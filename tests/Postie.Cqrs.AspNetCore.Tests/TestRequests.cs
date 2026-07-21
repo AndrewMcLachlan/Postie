@@ -116,3 +116,25 @@ public class RegisterWidgetHandler : ICommandHandler<RegisterWidget, Widget>
 
 // A no-response hybrid command (route id + body payload), mapped only — used by the binding guard tests.
 public record ArchiveWidget([FromRoute] int Id, [FromBody] RenameWidgetBody Body) : ICommand;
+
+// A search query with complex criteria, bound from the body for POST/QUERY-verb query endpoints.
+// The handler returns null for the term "missing" so the null-to-404 path can be exercised per verb.
+public record SearchWidgets(string Term, int Page) : IQuery<Widget>;
+
+public class SearchWidgetsHandler : IQueryHandler<SearchWidgets, Widget>
+{
+    public ValueTask<Widget> Handle(SearchWidgets query, CancellationToken cancellationToken) =>
+        new(query.Term == "missing" ? null : new Widget(query.Page, query.Term));
+}
+
+public record SearchCriteria(string Term);
+
+// A hybrid query: category from the route, criteria from the body — for the Parameters-binding
+// override on a POST query, and (mapped with Body binding) for the guard tests.
+public record SearchWidgetsIn([FromRoute] int CategoryId, [FromBody] SearchCriteria Criteria) : IQuery<Widget>;
+
+public class SearchWidgetsInHandler : IQueryHandler<SearchWidgetsIn, Widget>
+{
+    public ValueTask<Widget> Handle(SearchWidgetsIn query, CancellationToken cancellationToken) =>
+        new(new Widget(query.CategoryId, query.Criteria.Term));
+}

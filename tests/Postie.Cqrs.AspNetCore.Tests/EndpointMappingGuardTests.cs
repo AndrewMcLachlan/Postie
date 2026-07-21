@@ -162,4 +162,34 @@ public class EndpointMappingGuardTests
         Assert.Equal("binding", exception.ParamName);
         Assert.NotEmpty(label);
     }
+
+    /// <summary>
+    /// Given an undefined QueryMethod value, e.g. (QueryMethod)42.
+    /// When MapQuery is called.
+    /// Then an ArgumentOutOfRangeException naming "method" is thrown at map time.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void UndefinedQueryMethodThrowsArgumentOutOfRangeException()
+    {
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PostieEndpointRouteBuilderExtensions.MapQuery<GetGreeting, string>(BuildApp(), "/x", (QueryMethod)42));
+
+        Assert.Equal("method", exception.ParamName);
+    }
+
+    /// <summary>
+    /// Given an undefined explicit RequestBinding value on a query mapping.
+    /// When MapQuery is called.
+    /// Then an ArgumentOutOfRangeException naming "binding" is thrown at map time.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void UndefinedQueryBindingThrowsArgumentOutOfRangeException()
+    {
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PostieEndpointRouteBuilderExtensions.MapQuery<GetGreeting, string>(BuildApp(), "/x", QueryMethod.Post, (RequestBinding)42));
+
+        Assert.Equal("binding", exception.ParamName);
+    }
 }
