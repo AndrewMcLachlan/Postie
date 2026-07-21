@@ -138,3 +138,21 @@ public class SearchWidgetsInHandler : IQueryHandler<SearchWidgetsIn, Widget>
     public ValueTask<Widget> Handle(SearchWidgetsIn query, CancellationToken cancellationToken) =>
         new(new Widget(query.CategoryId, query.Criteria.Term));
 }
+
+// A streaming query with body-bound criteria.
+public record StreamMatchingWidgets(int Count, string Prefix) : IStreamQuery<Widget>;
+
+public class StreamMatchingWidgetsHandler : IStreamQueryHandler<StreamMatchingWidgets, Widget>
+{
+    public async IAsyncEnumerable<Widget> Handle(StreamMatchingWidgets query, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        for (var i = 1; i <= query.Count; i++)
+        {
+            await Task.Yield();
+            yield return new Widget(i, $"{query.Prefix} {i}");
+        }
+    }
+}
+
+// A hybrid streaming query, mapped only — used by the binding guard tests.
+public record StreamWidgetsIn([FromRoute] int CategoryId, [FromBody] SearchCriteria Criteria) : IStreamQuery<Widget>;

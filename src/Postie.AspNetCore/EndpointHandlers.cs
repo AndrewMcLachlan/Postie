@@ -18,9 +18,10 @@ internal static class EndpointHandlers
             },
             binding);
 
-    internal static Delegate StreamQuery<TRequest, TResponse>() where TRequest : notnull =>
-        ([AsParameters] TRequest request, IStreamEndpointDispatcher dispatcher, CancellationToken cancellationToken) =>
-            dispatcher.DispatchStream<TResponse>(request, cancellationToken);
+    internal static Delegate StreamQuery<TRequest, TResponse>(RequestBinding binding) where TRequest : notnull =>
+        BindStream<TRequest, TResponse>(
+            static (request, dispatcher, cancellationToken) => dispatcher.DispatchStream<TResponse>(request, cancellationToken),
+            binding);
 
     internal static Delegate Command<TRequest, TResponse>(int statusCode, RequestBinding binding) where TRequest : notnull =>
         Bind<TRequest>(
@@ -68,6 +69,21 @@ internal static class EndpointHandlers
             RequestBinding.Body => ([FromBody] TRequest request, IEndpointDispatcher dispatcher, CancellationToken cancellationToken) => core(request, dispatcher, cancellationToken),
             RequestBinding.Parameters => ([AsParameters] TRequest request, IEndpointDispatcher dispatcher, CancellationToken cancellationToken) => core(request, dispatcher, cancellationToken),
             _ => (TRequest request, IEndpointDispatcher dispatcher, CancellationToken cancellationToken) => core(request, dispatcher, cancellationToken),
+        };
+    }
+
+    private static Delegate BindStream<TRequest, TResponse>(Func<TRequest, IStreamEndpointDispatcher, CancellationToken, IAsyncEnumerable<TResponse>> core, RequestBinding binding) where TRequest : notnull
+    {
+        if (binding == RequestBinding.Body)
+        {
+            GuardBodyBinding<TRequest>();
+        }
+
+        return binding switch
+        {
+            RequestBinding.Body => ([FromBody] TRequest request, IStreamEndpointDispatcher dispatcher, CancellationToken cancellationToken) => core(request, dispatcher, cancellationToken),
+            RequestBinding.Parameters => ([AsParameters] TRequest request, IStreamEndpointDispatcher dispatcher, CancellationToken cancellationToken) => core(request, dispatcher, cancellationToken),
+            _ => (TRequest request, IStreamEndpointDispatcher dispatcher, CancellationToken cancellationToken) => core(request, dispatcher, cancellationToken),
         };
     }
 

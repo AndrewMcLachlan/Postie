@@ -120,4 +120,21 @@ public class EndpointMetadataTests
 
         Assert.Contains(produces, m => m.StatusCode == StatusCodes.Status404NotFound);
     }
+
+    /// <summary>
+    /// Given a streaming query mapped with QueryMethod.Post.
+    /// When its endpoint metadata is inspected.
+    /// Then the endpoint routes the POST method only and advertises the streamed item collection.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void MapStreamQueryWithPostRoutesPostMethodAndAdvertisesCollection()
+    {
+        var endpoint = EndpointFor(app => app.MapStreamQuery<StreamMatchingWidgets, Widget>("/widgets/export", QueryMethod.Post));
+
+        Assert.Equal(["POST"], endpoint.Metadata.GetMetadata<HttpMethodMetadata>().HttpMethods);
+        Assert.Contains(
+            endpoint.Metadata.GetOrderedMetadata<IProducesResponseTypeMetadata>(),
+            m => m.Type == typeof(IEnumerable<Widget>));
+    }
 }

@@ -384,4 +384,44 @@ public class EndpointMappingTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(new Widget(4, "axle"), await response.Content.ReadFromJsonAsync<Widget>(TestContext.Current.CancellationToken));
     }
+
+    /// <summary>
+    /// Given a streaming query mapped with QueryMethod.Post.
+    /// When the POST endpoint is called with the criteria as a JSON body.
+    /// Then the handler's items are streamed back as a JSON array.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapStreamQueryWithPostBindsBodyAndStreamsItems()
+    {
+        var client = await StartAsync(app => app.MapStreamQuery<StreamMatchingWidgets, Widget>("/widgets/export", QueryMethod.Post));
+
+        var response = await client.PostAsJsonAsync("/widgets/export", new StreamMatchingWidgets(2, "Match"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var widgets = await response.Content.ReadFromJsonAsync<List<Widget>>(TestContext.Current.CancellationToken);
+        Assert.Equal([new Widget(1, "Match 1"), new Widget(2, "Match 2")], widgets);
+    }
+
+    /// <summary>
+    /// Given a streaming query mapped with QueryMethod.Query.
+    /// When the endpoint is called with the HTTP QUERY method and a JSON body.
+    /// Then the handler's items are streamed back as a JSON array.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MapStreamQueryWithQueryVerbBindsBodyAndStreamsItems()
+    {
+        var client = await StartAsync(app => app.MapStreamQuery<StreamMatchingWidgets, Widget>("/widgets/export", QueryMethod.Query));
+
+        var request = new HttpRequestMessage(new HttpMethod("QUERY"), "/widgets/export")
+        {
+            Content = JsonContent.Create(new StreamMatchingWidgets(3, "Q")),
+        };
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var widgets = await response.Content.ReadFromJsonAsync<List<Widget>>(TestContext.Current.CancellationToken);
+        Assert.Equal([new Widget(1, "Q 1"), new Widget(2, "Q 2"), new Widget(3, "Q 3")], widgets);
+    }
 }

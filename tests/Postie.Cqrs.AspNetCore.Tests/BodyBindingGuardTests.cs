@@ -110,4 +110,21 @@ public class BodyBindingGuardTests
         Assert.Contains("CategoryId", exception.Message);
         Assert.Contains(nameof(RequestBinding.Parameters), exception.Message);
     }
+
+    /// <summary>
+    /// Given a hybrid streaming query with binding-source attributes.
+    /// When it is mapped with QueryMethod.Post (Body binding by default).
+    /// Then mapping throws at startup, proving the guard covers the stream query path.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void BodyBindingGuardCoversStreamQueryPath()
+    {
+        var app = BuildApp();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            app.MapStreamQuery<StreamWidgetsIn, Widget>("/widgets/export", QueryMethod.Post));
+
+        Assert.Contains(nameof(StreamWidgetsIn), exception.Message);
+    }
 }

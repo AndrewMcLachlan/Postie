@@ -192,4 +192,19 @@ public class EndpointMappingGuardTests
 
         Assert.Equal("binding", exception.ParamName);
     }
+
+    /// <summary>
+    /// Given an undefined QueryMethod value.
+    /// When MapStreamQuery is called.
+    /// Then an ArgumentOutOfRangeException naming "method" is thrown at map time.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void UndefinedStreamQueryMethodThrowsArgumentOutOfRangeException()
+    {
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PostieEndpointRouteBuilderExtensions.MapStreamQuery<StreamWidgets, Widget>(BuildApp(), "/x", (QueryMethod)42));
+
+        Assert.Equal("method", exception.ParamName);
+    }
 }

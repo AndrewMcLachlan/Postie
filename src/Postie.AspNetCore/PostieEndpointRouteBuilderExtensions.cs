@@ -53,8 +53,10 @@ public static class PostieEndpointRouteBuilderExtensions
     }
 
     /// <summary>
-    /// Maps a GET request to a streaming query, returning the results as an asynchronous stream. The query
-    /// is bound from route, query and header values.
+    /// Maps a streaming query to an endpoint, returning the results as an asynchronous stream. By
+    /// default the endpoint is a GET bound from route, query and header values; <paramref name="method"/>
+    /// selects POST or the HTTP QUERY method instead, both of which bind the query from the request
+    /// body by default.
     /// </summary>
     /// <remarks>
     /// Requires an <see cref="IStreamEndpointDispatcher"/> to be registered (the Postie and MediatR
@@ -64,15 +66,23 @@ public static class PostieEndpointRouteBuilderExtensions
     /// <typeparam name="TResponse">The type of each streamed item.</typeparam>
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
     /// <param name="pattern">The route pattern.</param>
+    /// <param name="method">The HTTP method to map. Defaults to <see cref="QueryMethod.Get"/>.</param>
+    /// <param name="binding">
+    /// How the query is bound. Defaults to the idiomatic binding for <paramref name="method"/>:
+    /// <see cref="RequestBinding.Parameters"/> for GET, <see cref="RequestBinding.Body"/> for POST
+    /// and QUERY.
+    /// </param>
     /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customise the endpoint.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> or <paramref name="pattern"/> is null.</exception>
-    public static RouteHandlerBuilder MapStreamQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern) where TRequest : notnull
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="method"/> is not a defined <see cref="QueryMethod"/> value, or <paramref name="binding"/> is not a defined <see cref="RequestBinding"/> value.</exception>
+    public static RouteHandlerBuilder MapStreamQuery<TRequest, TResponse>(this IEndpointRouteBuilder endpoints, string pattern, QueryMethod method = QueryMethod.Get, RequestBinding? binding = null) where TRequest : notnull
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         ArgumentNullException.ThrowIfNull(pattern);
+        ValidateQueryMethod(method);
 
-        return endpoints.MapGet(pattern, EndpointHandlers.StreamQuery<TRequest, TResponse>())
-                         .Produces<IEnumerable<TResponse>>();
+        return MapQueryVerb(endpoints, pattern, method, EndpointHandlers.StreamQuery<TRequest, TResponse>(ResolveQueryBinding(method, binding)))
+                 .Produces<IEnumerable<TResponse>>();
     }
 
     /// <summary>
