@@ -83,8 +83,9 @@ Collection queries should return empty collections, not null.
 
 ## Request binding
 
-Queries always bind from route, query and header values. Command methods take a `RequestBinding` that
-defaults to **`Body`** for POST/PUT/PATCH and **`Parameters`** for DELETE:
+Queries bind idiomatically for their `QueryMethod` — route, query and header values for GET, the
+request body for POST and QUERY — unless an explicit `RequestBinding` overrides that. Command methods
+take a `RequestBinding` that defaults to **`Body`** for POST/PUT/PATCH and **`Parameters`** for DELETE:
 
 ```csharp
 // Default: whole command from the JSON body.

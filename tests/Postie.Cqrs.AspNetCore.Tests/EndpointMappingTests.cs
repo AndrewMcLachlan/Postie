@@ -329,17 +329,23 @@ public class EndpointMappingTests
     }
 
     /// <summary>
-    /// Given a POST query whose handler returns null.
-    /// When the endpoint is called for missing criteria.
+    /// Given a body-bound query whose handler returns null.
+    /// When the endpoint is called for missing criteria, whichever non-GET method it is mapped with.
     /// Then 404 Not Found is returned — the null-result convention is verb-independent.
     /// </summary>
-    [Fact]
+    [Theory]
+    [InlineData(QueryMethod.Post)]
+    [InlineData(QueryMethod.Query)]
     [Trait("Category", "Integration")]
-    public async Task MapQueryWithPostReturnsNotFoundWhenHandlerReturnsNull()
+    public async Task MapQueryReturnsNotFoundWhenHandlerReturnsNullForAnyVerb(QueryMethod method)
     {
-        var client = await StartAsync(app => app.MapQuery<SearchWidgets, Widget>("/widgets/search", QueryMethod.Post));
+        var client = await StartAsync(app => app.MapQuery<SearchWidgets, Widget>("/widgets/search", method));
 
-        var response = await client.PostAsJsonAsync("/widgets/search", new SearchWidgets("missing", 1), TestContext.Current.CancellationToken);
+        var request = new HttpRequestMessage(new HttpMethod(method == QueryMethod.Post ? "POST" : "QUERY"), "/widgets/search")
+        {
+            Content = JsonContent.Create(new SearchWidgets("missing", 1)),
+        };
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
