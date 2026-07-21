@@ -1,5 +1,4 @@
 using MediatR;
-using Postie.AspNetCore;
 
 namespace Postie.AspNetCore.MediatR;
 
@@ -17,8 +16,7 @@ internal sealed class MediatREndpointDispatcher(ISender sender) : IEndpointDispa
 
         if (request is not IRequest<TResponse> typedRequest)
         {
-            throw new InvalidOperationException(
-                $"Request '{request.GetType().Name}' is not an IRequest<{typeof(TResponse).Name}>. Map it with a MediatR request type that returns the matching response.");
+            throw new InvalidOperationException($"Request '{request.GetType().Name}' is not an IRequest<{typeof(TResponse).Name}>. Map it with a MediatR request type that returns the matching response.");
         }
 
         return new ValueTask<TResponse>(sender.Send(typedRequest, cancellationToken));
@@ -39,8 +37,7 @@ internal sealed class MediatREndpointDispatcher(ISender sender) : IEndpointDispa
 
         if (request is not IStreamRequest<TResponse> streamRequest)
         {
-            throw new InvalidOperationException(
-                $"Request '{request.GetType().Name}' is not an IStreamRequest<{typeof(TResponse).Name}>. Map it with a MediatR stream request type that returns the matching item.");
+            throw new InvalidOperationException($"Request '{request.GetType().Name}' is not an IStreamRequest<{typeof(TResponse).Name}>. Map it with a MediatR stream request type that returns the matching item.");
         }
 
         return sender.CreateStream(streamRequest, cancellationToken);

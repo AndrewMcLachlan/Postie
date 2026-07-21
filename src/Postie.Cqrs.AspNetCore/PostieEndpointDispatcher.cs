@@ -20,8 +20,7 @@ internal sealed class PostieEndpointDispatcher(IQueryDispatcher queryDispatcher,
         {
             IQuery<TResponse> query => queryDispatcher.Dispatch(query, cancellationToken),
             ICommand<TResponse> command => commandDispatcher.Dispatch(command, cancellationToken),
-            _ => throw new InvalidOperationException(
-                $"Request '{request.GetType().Name}' returning '{typeof(TResponse).Name}' is neither an IQuery<{typeof(TResponse).Name}> nor an ICommand<{typeof(TResponse).Name}>. Map it with a query or command type that implements the matching Postie interface."),
+            _ => throw new InvalidOperationException($"Request '{request.GetType().Name}' returning '{typeof(TResponse).Name}' is neither an IQuery<{typeof(TResponse).Name}> nor an ICommand<{typeof(TResponse).Name}>. Map it with a query or command type that implements the matching Postie interface."),
         };
     }
 
@@ -31,7 +30,6 @@ internal sealed class PostieEndpointDispatcher(IQueryDispatcher queryDispatcher,
 
         return request is ICommand command
             ? commandDispatcher.Execute(command, cancellationToken)
-            : throw new InvalidOperationException(
-                $"Request '{request.GetType().Name}' is not an ICommand. A no-response endpoint must map a command type that implements ICommand.");
+            : throw new InvalidOperationException($"Request '{request.GetType().Name}' is not an ICommand. A no-response endpoint must map a command type that implements ICommand.");
     }
 }

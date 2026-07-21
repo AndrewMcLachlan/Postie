@@ -16,7 +16,6 @@ internal sealed class PostieStreamEndpointDispatcher(IStreamQueryDispatcher stre
 
         return request is IStreamQuery<TResponse> streamQuery
             ? streamQueryDispatcher.Dispatch(streamQuery, cancellationToken)
-            : throw new InvalidOperationException(
-                $"Request '{request.GetType().Name}' is not an IStreamQuery<{typeof(TResponse).Name}>. Map it with a stream query type that implements the matching Postie interface.");
+            : throw new InvalidOperationException($"Request '{request.GetType().Name}' is not an IStreamQuery<{typeof(TResponse).Name}>. Map it with a stream query type that implements the matching Postie interface.");
     }
 }
