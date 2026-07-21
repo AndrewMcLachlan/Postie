@@ -35,19 +35,45 @@ Every method returns the `RouteHandlerBuilder`, so you can chain `.WithName(...)
 
 | Method | Verb | Success |
 |--------|------|---------|
-| `MapQuery<TQuery, TResponse>` | GET | 200 / 404 on null |
+| `MapQuery<TQuery, TResponse>` | GET (default) / POST / QUERY | 200 / 404 on null |
 | `MapCommand<TCommand, TResponse>` / `MapCommand<TCommand>` | POST | 200 / 204 |
 | `MapPutCommand<TCommand, TResponse>` / `MapPutCommand<TCommand>` | PUT | 200 / 204 |
 | `MapPatchCommand<TCommand, TResponse>` | PATCH | 200 |
 | `MapPostCreate<TCommand, TResponse>` / `MapPutCreate<...>` | POST / PUT | 201 + `Location` |
 | `MapDeleteCommand<TCommand>` / `MapDeleteCommand<TCommand, TResponse>` | DELETE | 204 / 200 |
-| `MapStreamQuery<TQuery, TResponse>` | GET | 200 (streamed) |
+| `MapStreamQuery<TQuery, TResponse>` | GET (default) / POST / QUERY | 200 (streamed) |
 
 Pass a status code to override the default (e.g. `MapCommand<Submit, Receipt>("/submit", StatusCodes.Status202Accepted)`).
 
 `MapStreamQuery` maps a streaming query (returning `IAsyncEnumerable<TResponse>`) and requires an
 `IStreamEndpointDispatcher` — a separate, optional companion to `IEndpointDispatcher` that the Postie and
 MediatR adapters register automatically. A roll-your-own mediator only needs to implement it to map streams.
+
+`MapStreamQuery` responses are written as a JSON array serialised incrementally — the first items
+reach the client while later ones are still being produced, and memory stays flat however long the
+stream runs. Because the 200 status line is sent before enumeration finishes, a handler failure
+mid-stream aborts the connection with truncated JSON rather than producing an error status.
+
+### Queries with a request body
+
+Criteria too rich for a query string — nested filters, sort sets, paging — can bind from the body
+by picking the HTTP method for the query. POST and the HTTP QUERY method bind the query from the
+request body by default; an explicit `RequestBinding` overrides any default:
+
+```csharp
+public record SearchOrders(OrderFilter Filter, Paging Page, Sort[] Sort) : IQuery<PagedResult<Order>>;
+
+app.MapQuery<SearchOrders, PagedResult<Order>>("/orders/search", QueryMethod.Post);
+app.MapQuery<SearchOrders, PagedResult<Order>>("/orders/search", QueryMethod.Query);
+```
+
+The response contract does not change with the method: a null result is 404, anything else is
+200. The HTTP QUERY method is safe and idempotent like GET while carrying a body like POST —
+the semantically ideal fit for a query — but ecosystem support is still maturing:
+a spike against `Microsoft.AspNetCore.OpenApi` (10.0.10, on .NET 10) found that a QUERY-mapped
+endpoint is silently omitted from the generated `/openapi/v1.json` — document generation succeeds
+and the GET and POST endpoints appear correctly, but the QUERY endpoint has no entry at all — and
+intermediaries or clients may not recognise the method yet. POST works everywhere today.
 
 ## Not found
 

@@ -98,13 +98,13 @@ builder.Services.AddTransient<IEndpointDispatcher, MyEndpointDispatcher>();
 
 | Method | Verb | Success | Default binding |
 |--------|------|---------|-----------------|
-| `MapQuery<TQuery, TResponse>` | GET | 200 / 404 on null | route/query |
+| `MapQuery<TQuery, TResponse>` | GET (default) / POST / QUERY | 200 / 404 on null | route/query (body for POST/QUERY) |
 | `MapCommand<TCommand, TResponse>` / `MapCommand<TCommand>` | POST | 200 / 204 | body |
 | `MapPutCommand<TCommand, TResponse>` / `MapPutCommand<TCommand>` | PUT | 200 / 204 | body |
 | `MapPatchCommand<TCommand, TResponse>` | PATCH | 200 | body |
 | `MapPostCreate<TCommand, TResponse>` / `MapPutCreate<...>` | POST / PUT | 201 + `Location` | body |
 | `MapDeleteCommand<TCommand>` / `MapDeleteCommand<TCommand, TResponse>` | DELETE | 204 / 200 | route/query |
-| `MapStreamQuery<TQuery, TResponse>` | GET | 200 (streamed) | route/query |
+| `MapStreamQuery<TQuery, TResponse>` | GET (default) / POST / QUERY | 200 (streamed) | route/query (body for POST/QUERY) |
 
 Command methods take a `RequestBinding` (`Body`, `Parameters`, or `Default`) to override the default —
 use `Parameters` for hybrid endpoints that bind an id from the route and a payload from the body.
