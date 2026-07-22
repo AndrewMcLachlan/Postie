@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Postie.AspNetCore;
 using Postie.Cqrs.AspNetCore;
+using Postie.Cqrs.Queries;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -61,7 +62,14 @@ public static class PostieServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddTransient<IEndpointDispatcher, PostieEndpointDispatcher>();
-        services.TryAddTransient<IStreamEndpointDispatcher, PostieStreamEndpointDispatcher>();
+
+        // A factory keeps build-time DI validation from demanding stream query support in apps
+        // that never map a stream endpoint; the dependency is checked on first use instead.
+        services.TryAddTransient<IStreamEndpointDispatcher>(static provider =>
+            new PostieStreamEndpointDispatcher(
+                provider.GetService<IStreamQueryDispatcher>()
+                    ?? throw new InvalidOperationException(
+                        "Stream endpoint dispatch requires an IStreamQueryDispatcher, which is not registered. Register stream query support with AddCqrs or AddStreamQueryHandlers alongside AddPostieEndpointDispatcher.")));
 
         return services;
     }
