@@ -1,0 +1,69 @@
+name: Prepare Release
+
+# Creates a DRAFT GitHub release for the version in Directory.Build.props after verifying the
+# commit is release-ready. A draft creates no tag; publishing it is a manual, human action that
+# mints the version tag under the publisher's own account (so the Version tags ruleset applies
+# unchanged) and triggers the Release workflow. Publishing to nuget.org still waits for the
+# protected nuget.org environment approval inside that workflow.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: write   # create the draft release
+      checks: read      # verify the build check on HEAD
+    steps:
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+    - name: Get version info
+      id: get-version-number
+      uses: AndrewMcLachlan/Actions/get-version-number-from-project@d3e53c04be8287ab0c19ec485b0741a7d166ea31 # v4
+      with:
+        project: Directory.Build.props
+
+    - name: Verify the release is new
+      id: tag
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        TAG="v${{ steps.get-version-number.outputs.major }}.${{ steps.get-version-number.outputs.minor }}.${{ steps.get-version-number.outputs.patch }}"
+        if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+          echo "::error::Tag $TAG already exists. Bump the Version in Directory.Build.props before preparing a release."
+          exit 1
+        fi
+        if gh release list --repo "${{ github.repository }}" --json tagName,isDraft --jq ".[] | select(.isDraft and .tagName == \"$TAG\")" | grep -q .; then
+          echo "::error::A draft release for $TAG already exists. Publish or delete it before preparing another."
+          exit 1
+        fi
+        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+    - name: Verify CI is green for this commit
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs" --jq '[.check_runs[] | select(.name == "build")] | first | .conclusion // empty')
+        if [ "$CONCLUSION" != "success" ]; then
+          echo "::error::The 'build' check has not succeeded for ${{ github.sha }} (found: '${CONCLUSION:-none}'). Release from a commit with green CI."
+          exit 1
+        fi
+
+    - name: Create draft release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release create "${{ steps.tag.outputs.tag }}" \
+          --repo "${{ github.repository }}" \
+          --draft \
+          --target "${{ github.sha }}" \
+          --title "${{ steps.tag.outputs.tag }}" \
+          --generate-notes
+        {
+          echo "### Draft release ${{ steps.tag.outputs.tag }} created for ${{ github.sha }}"
+          echo "Review the draft, then publish it to mint the tag and start the Release workflow."
+        } >> "$GITHUB_STEP_SUMMARY"

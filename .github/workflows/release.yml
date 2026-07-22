@@ -1,8 +1,11 @@
 name: Release
 
 # Publishes to nuget.org via NuGet Trusted Publishing (OIDC, no long-lived API key stored in this
-# repo). Triggered manually so releases to the public feed are always deliberate. The version
-# comes from Directory.Build.props; a prerelease run appends -beta.<run_number>.
+# repo). Stable releases run when a GitHub release is published (the Prepare Release workflow
+# stages the draft; publishing it mints the tag). Manual dispatch remains for betas (and for a
+# stable re-run from the tag ref if ever needed). The version comes from Directory.Build.props;
+# a prerelease run appends -beta.<run_number>. For a release event the isprerelease input is
+# absent, which evaluates as a stable release throughout.
 on:
   workflow_dispatch:
     inputs:
@@ -10,6 +13,8 @@ on:
         description: "Pre-release"
         default: true
         type: boolean
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -17,8 +22,12 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # Stable runs are expected to be dispatched FROM the version tag ref, not from main.
-    if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+    # Stable runs are expected to run FROM the version tag ref, not from main. A GitHub release
+    # marked as a pre-release does not publish: betas go through manual dispatch, where the
+    # -beta.<run_number> suffix keeps the version distinct.
+    if: >-
+      ${{ (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
+       || (github.event_name == 'release' && !github.event.release.prerelease && startsWith(github.ref, 'refs/tags/v')) }}
     permissions:
       contents: read
     steps:
