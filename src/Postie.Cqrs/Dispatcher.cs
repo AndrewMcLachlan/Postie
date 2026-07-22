@@ -33,6 +33,12 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
     private static readonly ConcurrentDictionary<Type, Delegate> VoidBehaviorInvokers = new();
     private static readonly ConcurrentDictionary<Type, Delegate> StreamBehaviorInvokers = new();
 
+    // Closed behavior types and their IEnumerable<> wrappers, cached so behavior discovery performs
+    // no MakeGenericType per dispatch. The response type must be part of the key because a request
+    // type can implement the request interface for more than one response type.
+    private static readonly ConcurrentDictionary<(Type Behavior, Type Request, Type Response), (Type BehaviorType, Type EnumerableType)> BehaviorTypes = new();
+    private static readonly ConcurrentDictionary<Type, (Type BehaviorType, Type EnumerableType)> VoidBehaviorTypes = new();
+
     public ValueTask<TResponse> Dispatch<TResponse>(IQuery<TResponse> query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -140,10 +146,17 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
     // terminal delegate is invoked directly, so the common case allocates no chain.
     private ValueTask<TResponse> Pipeline<TResponse>(object request, Type requestType, Type behaviorGenericType, RequestHandlerDelegate<TResponse> terminal, CancellationToken cancellationToken)
     {
-        var behaviorType = behaviorGenericType.MakeGenericType(requestType, typeof(TResponse));
-        var behaviors = serviceProvider.GetServices(behaviorType).OfType<object>().ToArray();
+        var (behaviorType, enumerableType) = BehaviorTypes.GetOrAdd(
+            (behaviorGenericType, requestType, typeof(TResponse)),
+            static key =>
+            {
+                var behaviorType = key.Behavior.MakeGenericType(key.Request, key.Response);
+                return (behaviorType, typeof(IEnumerable<>).MakeGenericType(behaviorType));
+            });
 
-        if (behaviors.Length == 0)
+        var behaviors = ResolveBehaviors(enumerableType);
+
+        if (behaviors.Count == 0)
         {
             return terminal();
         }
@@ -152,7 +165,7 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
             ResponseBehaviorInvokers.GetOrAdd(behaviorType, static (bt, rt) => BuildResponseBehaviorInvoker<TResponse>(bt, rt), requestType);
 
         var next = terminal;
-        for (var i = behaviors.Length - 1; i >= 0; i--)
+        for (var i = behaviors.Count - 1; i >= 0; i--)
         {
             var behavior = behaviors[i];
             var captured = next;
@@ -164,10 +177,17 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
 
     private ValueTask VoidPipeline(object request, Type requestType, RequestHandlerDelegate terminal, CancellationToken cancellationToken)
     {
-        var behaviorType = CommandBehaviorVoidGenericType.MakeGenericType(requestType);
-        var behaviors = serviceProvider.GetServices(behaviorType).OfType<object>().ToArray();
+        var (behaviorType, enumerableType) = VoidBehaviorTypes.GetOrAdd(
+            requestType,
+            static request =>
+            {
+                var behaviorType = CommandBehaviorVoidGenericType.MakeGenericType(request);
+                return (behaviorType, typeof(IEnumerable<>).MakeGenericType(behaviorType));
+            });
 
-        if (behaviors.Length == 0)
+        var behaviors = ResolveBehaviors(enumerableType);
+
+        if (behaviors.Count == 0)
         {
             return terminal();
         }
@@ -176,7 +196,7 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
             VoidBehaviorInvokers.GetOrAdd(behaviorType, static (bt, rt) => BuildVoidBehaviorInvoker(bt, rt), requestType);
 
         var next = terminal;
-        for (var i = behaviors.Length - 1; i >= 0; i--)
+        for (var i = behaviors.Count - 1; i >= 0; i--)
         {
             var behavior = behaviors[i];
             var captured = next;
@@ -188,10 +208,17 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
 
     private IAsyncEnumerable<TResponse> StreamPipeline<TResponse>(object request, Type requestType, StreamHandlerDelegate<TResponse> terminal, CancellationToken cancellationToken)
     {
-        var behaviorType = StreamQueryBehaviorGenericType.MakeGenericType(requestType, typeof(TResponse));
-        var behaviors = serviceProvider.GetServices(behaviorType).OfType<object>().ToArray();
+        var (behaviorType, enumerableType) = BehaviorTypes.GetOrAdd(
+            (StreamQueryBehaviorGenericType, requestType, typeof(TResponse)),
+            static key =>
+            {
+                var behaviorType = key.Behavior.MakeGenericType(key.Request, key.Response);
+                return (behaviorType, typeof(IEnumerable<>).MakeGenericType(behaviorType));
+            });
 
-        if (behaviors.Length == 0)
+        var behaviors = ResolveBehaviors(enumerableType);
+
+        if (behaviors.Count == 0)
         {
             return terminal();
         }
@@ -200,7 +227,7 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
             StreamBehaviorInvokers.GetOrAdd(behaviorType, static (bt, rt) => BuildStreamBehaviorInvoker<TResponse>(bt, rt), requestType);
 
         var next = terminal;
-        for (var i = behaviors.Length - 1; i >= 0; i--)
+        for (var i = behaviors.Count - 1; i >= 0; i--)
         {
             var behavior = behaviors[i];
             var captured = next;
@@ -208,6 +235,15 @@ internal class Dispatcher(IServiceProvider serviceProvider) : IQueryDispatcher, 
         }
 
         return next();
+    }
+
+    // Resolving the cached IEnumerable<TBehavior> type always succeeds (the container synthesizes
+    // empty sequences), and the provider-built array is used directly via the covariant
+    // IReadOnlyList<object> view, so behavior discovery allocates nothing when none are registered.
+    private IReadOnlyList<object> ResolveBehaviors(Type enumerableType)
+    {
+        var resolved = serviceProvider.GetRequiredService(enumerableType);
+        return resolved as IReadOnlyList<object> ?? ((IEnumerable<object>)resolved).ToArray();
     }
 
     // Returns a started activity, or null when nothing is listening (the common case) so the fast path
