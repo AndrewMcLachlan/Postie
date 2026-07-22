@@ -117,6 +117,15 @@ public class RegisterWidgetHandler : ICommandHandler<RegisterWidget, Widget>
 // A no-response hybrid command (route id + body payload), mapped only — used by the binding guard tests.
 public record ArchiveWidget([FromRoute] int Id, [FromBody] RenameWidgetBody Body) : ICommand;
 
+// A query whose handler throws, proving the engine surfaces handler exceptions unwrapped.
+public record ExplodingQuery(string Reason) : IQuery<Widget>;
+
+public class ExplodingQueryHandler : IQueryHandler<ExplodingQuery, Widget>
+{
+    public ValueTask<Widget> Handle(ExplodingQuery query, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException(query.Reason);
+}
+
 // A search query with complex criteria, bound from the body for POST/QUERY-verb query endpoints.
 // The handler returns null for the term "missing" so the null-to-404 path can be exercised per verb.
 public record SearchWidgets(string Term, int Page) : IQuery<Widget>;

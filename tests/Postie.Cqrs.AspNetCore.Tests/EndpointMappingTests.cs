@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
@@ -429,5 +430,56 @@ public class EndpointMappingTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var widgets = await response.Content.ReadFromJsonAsync<List<Widget>>(TestContext.Current.CancellationToken);
         Assert.Equal([new Widget(1, "Q 1"), new Widget(2, "Q 2"), new Widget(3, "Q 3")], widgets);
+    }
+
+    /// <summary>
+    /// Given a handler that throws and no exception-handling middleware.
+    /// When the endpoint is called.
+    /// Then the original exception surfaces unwrapped to the host rather than being swallowed or
+    /// translated by Postie.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task UnhandledHandlerExceptionSurfacesUnwrapped()
+    {
+        var client = await StartAsync(app => app.MapQuery<ExplodingQuery, Widget>("/widgets/explode/{reason}"));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => client.GetAsync("/widgets/explode/boom", TestContext.Current.CancellationToken));
+
+        Assert.Equal("boom", exception.Message);
+    }
+
+    /// <summary>
+    /// Given a command endpoint bound from the body.
+    /// When the POST body is malformed JSON.
+    /// Then the framework rejects the request with 400 Bad Request before dispatch.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task MalformedJsonBodyReturnsBadRequest()
+    {
+        var client = await StartAsync(app => app.MapCommand<SubmitWidget, Widget>("/widgets"));
+
+        var content = new StringContent("{ not json", Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("/widgets", content, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Given a command endpoint bound from the body.
+    /// When the POST request has no body.
+    /// Then the framework rejects the request with 400 Bad Request before dispatch.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task EmptyBodyReturnsBadRequest()
+    {
+        var client = await StartAsync(app => app.MapCommand<SubmitWidget, Widget>("/widgets"));
+
+        var response = await client.PostAsync("/widgets", null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 }
