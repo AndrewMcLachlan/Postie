@@ -1,14 +1,12 @@
 <Solution>
-  <Configurations>
-    <BuildType Name="Debug" />
-    <BuildType Name="Release" />
-    <Platform Name="Any CPU" />
-  </Configurations>
+  <Folder Name="/.github/">
+    <File Path=".github/dependabot.yml" />
+  </Folder>
   <Folder Name="/.github/workflows/">
     <File Path=".github/workflows/build.yml" />
     <File Path=".github/workflows/release.yml" />
   </Folder>
-  <Folder Name="/Solution Items/">
+  <Folder Name="/Config/">
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
     <File Path="AGENTS.md" />
@@ -21,24 +19,24 @@
   </Folder>
   <Folder Name="/samples/">
     <File Path="samples/Directory.Build.props" />
-    <Project Path="samples/Postie.Sample.Orders/Postie.Sample.Orders.csproj" />
     <Project Path="samples/Postie.Sample.Orders.MediatR/Postie.Sample.Orders.MediatR.csproj" />
+    <Project Path="samples/Postie.Sample.Orders/Postie.Sample.Orders.csproj" />
   </Folder>
   <Folder Name="/src/">
     <File Path="src/Directory.Build.props" />
-    <Project Path="src/Postie.Cqrs/Postie.Cqrs.csproj" />
+    <Project Path="src/Postie.AspNetCore.FluentValidation/Postie.AspNetCore.FluentValidation.csproj" />
+    <Project Path="src/Postie.AspNetCore.MediatR/Postie.AspNetCore.MediatR.csproj" />
     <Project Path="src/Postie.AspNetCore/Postie.AspNetCore.csproj" />
     <Project Path="src/Postie.Cqrs.AspNetCore/Postie.Cqrs.AspNetCore.csproj" />
-    <Project Path="src/Postie.AspNetCore.MediatR/Postie.AspNetCore.MediatR.csproj" />
     <Project Path="src/Postie.Cqrs.FluentValidation/Postie.Cqrs.FluentValidation.csproj" />
-    <Project Path="src/Postie.AspNetCore.FluentValidation/Postie.AspNetCore.FluentValidation.csproj" />
+    <Project Path="src/Postie.Cqrs/Postie.Cqrs.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />
-    <Project Path="tests/Postie.Cqrs.Tests/Postie.Cqrs.Tests.csproj" />
-    <Project Path="tests/Postie.Cqrs.AspNetCore.Tests/Postie.Cqrs.AspNetCore.Tests.csproj" />
-    <Project Path="tests/Postie.AspNetCore.MediatR.Tests/Postie.AspNetCore.MediatR.Tests.csproj" />
-    <Project Path="tests/Postie.Cqrs.FluentValidation.Tests/Postie.Cqrs.FluentValidation.Tests.csproj" />
     <Project Path="tests/Postie.AspNetCore.FluentValidation.Tests/Postie.AspNetCore.FluentValidation.Tests.csproj" />
+    <Project Path="tests/Postie.AspNetCore.MediatR.Tests/Postie.AspNetCore.MediatR.Tests.csproj" />
+    <Project Path="tests/Postie.Cqrs.AspNetCore.Tests/Postie.Cqrs.AspNetCore.Tests.csproj" />
+    <Project Path="tests/Postie.Cqrs.FluentValidation.Tests/Postie.Cqrs.FluentValidation.Tests.csproj" />
+    <Project Path="tests/Postie.Cqrs.Tests/Postie.Cqrs.Tests.csproj" />
   </Folder>
 </Solution>
