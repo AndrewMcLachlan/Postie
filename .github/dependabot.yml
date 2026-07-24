@@ -18,6 +18,9 @@ updates:
       # 12.x is the last Apache-2.0 MediatR line; 13+ is commercially licensed. Never auto-bump the major.
       - dependency-name: "MediatR"
         update-types: ["version-update:semver-major"]
+      # A FluentValidation major raises the floor consumers of Postie.*.FluentValidation must take.
+      - dependency-name: "FluentValidation*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
