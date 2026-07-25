@@ -202,6 +202,21 @@ it as your own. It will then be judged exactly like any other contribution. What
 unreviewed generation — a pull request nobody has read has no author, and every change to Postie
 has one.
 
+## Acknowledgements
+
+Postie stands on ideas the .NET community worked out well before it existed. The pipeline behavior
+model — a `Handle(request, next, cancellationToken)` chain wrapped around the handler — comes from
+[MediatR](https://github.com/LuckyPennySoftware/MediatR) (the Apache-2.0 12.x era), and the
+`ICommand`/`IQuery` split with `ValueTask` handlers has prior art in
+[martinothamar/Mediator](https://github.com/martinothamar/Mediator). No code from either project was
+copied; the debt is one of ideas, and worth recording.
+
+MediatR and FluentValidation are independent projects. Postie's adapter packages use their names to
+say what they adapt, not to claim any affiliation or endorsement.
+
+The wordmark and social artwork are set in the [Outfit](https://fonts.google.com/specimen/Outfit)
+typeface (SIL Open Font License 1.1).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
