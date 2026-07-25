@@ -30,6 +30,11 @@ free forever — no commercial editions.
 - xUnit v3; test methods PascalCase with a Given/When/Then XML summary; `[Trait("Category", "Unit")]`.
 - CI runs `dotnet test` without a category filter — untagged tests still run.
 
+## Brand
+
+- "Postie Orange" is `#ff5800` — use it as the accent colour in diagrams, artwork, and other
+  visual assets.
+
 ## Repository Tips
 
 - Shared build metadata lives in `Directory.Build.props` (root and `src/`); NuGet versions are centrally
