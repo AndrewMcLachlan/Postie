@@ -187,10 +187,8 @@ Targets `net8.0`, `net9.0` and `net10.0`.
 ## AI policy
 
 Postie began life hand-written: it evolved from
-[Asm.Cqrs](https://github.com/AndrewMcLachlan/ASM/tree/23adc40decf33ee819502718667cf3905c820f80/src/Asm.Cqrs),
-the maintainer's earlier CQRS library, since
-[retired](https://github.com/AndrewMcLachlan/ASM/commit/9fdfe5571a15d7422da22ec85af7c51d00dd853d)
-in favour of Postie. Its development since has substantial help from AI coding
+[Asm.Cqrs](https://github.com/AndrewMcLachlan/ASM/tree/asm-cqrs-final/src/Asm.Cqrs), the maintainer's
+earlier CQRS library (now retired in favour of Postie). Its development since has substantial help from AI coding
 tools — much of the newer code, tests and documentation started life AI-generated. It is not,
 however, AI-published: every change is reviewed by the human maintainer before it ships, the full
 test suite runs across all supported frameworks on every push, and the decisions that matter — the
