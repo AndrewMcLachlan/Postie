@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: write # coverage PR comment
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
     - name: Setup .NET
@@ -52,6 +53,25 @@ jobs:
         name: coverage
         path: ${{ github.workspace }}/coverage
         retention-days: 30
+
+    - name: Coverage report
+      uses: danielpalme/ReportGenerator-GitHub-Action@049f7ec958c672fd31d5cc1cb01622dc8d2e23ab # 5.5.10
+      with:
+        reports: ${{ github.workspace }}/coverage/**/coverage.cobertura.xml
+        targetdir: ${{ github.workspace }}/coverage-report
+        reporttypes: MarkdownAssembliesSummary
+
+    # Sticky comment: recreated on each push so a PR carries one up-to-date coverage table.
+    # Fork PRs get a read-only token so this step can't post there; the job summary below still works.
+    - name: Add coverage PR comment
+      uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+      if: github.event_name == 'pull_request'
+      with:
+        recreate: true
+        path: coverage-report/Summary.md
+
+    - name: Write coverage to job summary
+      run: cat coverage-report/Summary.md >> $GITHUB_STEP_SUMMARY
 
     # Packs only the src/ libraries - the samples are apps, not NuGet packages.
     - name: Package
