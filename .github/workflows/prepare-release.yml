@@ -23,7 +23,7 @@ jobs:
 
     - name: Get version info
       id: get-version-number
-      uses: AndrewMcLachlan/Actions/get-version-number-from-project@d3e53c04be8287ab0c19ec485b0741a7d166ea31 # v4
+      uses: AndrewMcLachlan/Actions/get-version-number-from-project@dc877bd231e7e93329acd8b1144cf3b9168ded86 # v4
       with:
         project: Directory.Build.props
 
