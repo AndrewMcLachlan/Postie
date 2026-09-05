@@ -37,7 +37,7 @@
     <!-- Transitive of Microsoft.AspNetCore.OpenApi; pinned to pull the GHSA-v5pm-xwqc-g5wc fix. -->
     <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.17.2" />
   </ItemGroup>
 
