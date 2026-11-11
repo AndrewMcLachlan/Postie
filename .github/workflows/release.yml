@@ -39,9 +39,8 @@ jobs:
       uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
       with:
         dotnet-version: |
-          8.x
-          9.x
           10.x
+          11.x
 
     - name: Get version info
       id: get-version-number
@@ -125,7 +124,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
       with:
-        dotnet-version: 10.x
+        dotnet-version: 11.x
 
     # NuGet Trusted Publishing: exchanges this job's GitHub OIDC token (permissions.id-token:
     # write, above) for a short-lived (1 hour) nuget.org API key. Requires a Trusted Publishing

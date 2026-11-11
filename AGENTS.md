@@ -26,7 +26,7 @@ free forever — no commercial editions.
 
 ## Testing
 
-- Multi-target `net8.0;net9.0;net10.0` — run tests across all frameworks before pushing.
+- Multi-target `net10.0;net11.0` — run tests across all frameworks before pushing.
 - xUnit v3; test methods PascalCase with a Given/When/Then XML summary; `[Trait("Category", "Unit")]`.
 - CI runs `dotnet test` without a category filter — untagged tests still run.
 
