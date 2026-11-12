@@ -16,14 +16,14 @@ possible opening move.
 
 ## Building and testing
 
-You need the .NET 8, 9 and 10 SDKs installed.
+You need the .NET 10 and 11 SDKs installed.
 
 ```
 dotnet build Postie.slnx
 dotnet test Postie.slnx
 ```
 
-Tests run across `net8.0`, `net9.0` and `net10.0`; all frameworks must pass. The two runnable
+Tests run across `net10.0` and `net11.0`; all frameworks must pass. The two runnable
 sample apps under [`samples/`](samples) are handy for exercising endpoint behavior by hand.
 
 ## Conventions

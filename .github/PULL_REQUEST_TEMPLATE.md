@@ -4,7 +4,7 @@
 
 ## Checklist
 
-- [ ] `dotnet test Postie.slnx` passes on net8.0/net9.0/net10.0
+- [ ] `dotnet test Postie.slnx` passes on net10.0/net11.0
 - [ ] New public APIs have XML documentation; non-obvious behavior has a README example
 - [ ] `Postie.AspNetCore` still references no mediator or validation packages
 - [ ] Breaking changes are called out below (they require explicit approval)

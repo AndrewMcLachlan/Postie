@@ -182,7 +182,7 @@ dotnet build Postie.slnx
 dotnet test Postie.slnx
 ```
 
-Targets `net8.0`, `net9.0` and `net10.0`.
+Targets `net10.0` and `net11.0`.
 
 ## AI policy
 
